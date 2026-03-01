@@ -32,7 +32,7 @@ html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stSelectbox, .st
 }
 
 /* Fix top clipping / spacing */
-div.block-container { padding-top: 2.2rem; padding-bottom: 3rem; max-width: 1200px; }
+div.block-container { padding-top: 3.2rem; padding-bottom: 3rem; max-width: 1200px; }
 
 /* Subtle dark cards */
 .ms-card {
@@ -47,6 +47,7 @@ div.block-container { padding-top: 2.2rem; padding-bottom: 3rem; max-width: 1200
 .ms-header {
   border-radius: 18px;
   padding: 18px 18px;
+  margin-top: 0.25rem;
   margin-bottom: 18px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
@@ -167,157 +168,139 @@ with st.sidebar:
 # -----------------------------
 
 def dashboard():
-    header("대시보드", "오늘 날짜/바로가기/할 일/메모로 업무를 빠르게 정리하세요.")
+    # 사용자 개인 업무용 대시보드
+    import uuid
+    from datetime import datetime
 
-    # ---- state ----
-    st.session_state.setdefault("shortcuts", [])   # list[{id,emoji,title,url,created_at}]
-    st.session_state.setdefault("todo_items", [])  # list[{id,text,done,created_at}]
-    st.session_state.setdefault("memo_text", "")
+    st.markdown('<div class="ms-title-card"><div class="ms-title">대시보드</div><div class="ms-sub">오늘 해야 할 일과 바로가기를 한 화면에서 관리하세요.</div></div>', unsafe_allow_html=True)
 
-    def _valid_url(u: str) -> bool:
-        try:
-            from urllib.parse import urlparse
-            p = urlparse((u or "").strip())
-            return p.scheme in ("http", "https") and bool(p.netloc)
-        except Exception:
-            return False
+    # --- state init ---
+    if "dash_shortcuts" not in st.session_state:
+        st.session_state.dash_shortcuts = [
+            {"id": str(uuid.uuid4()), "title": "미샵 관리자", "url": "https://misharp.co.kr", "emoji": "🛍️"},
+            {"id": str(uuid.uuid4()), "title": "카페24 관리자", "url": "https://eclogin.cafe24.com/Shop/", "emoji": "🧾"},
+        ]
+    if "dash_memo" not in st.session_state:
+        st.session_state.dash_memo = ""
+    if "dash_todos" not in st.session_state:
+        st.session_state.dash_todos = []  # [{"id":..., "text":..., "done": False}]
 
-    def _new_id(prefix="id"):
-        return f"{prefix}_{uuid.uuid4().hex[:10]}"
+    def _valid_url(url: str) -> bool:
+        url = (url or "").strip()
+        return url.startswith("http://") or url.startswith("https://")
 
-    # ---- Top: date + backup/restore ----
-    now = datetime.datetime.now()
-    top1, top2, top3 = st.columns([1.1, 1.0, 1.1], gap="large")
+    # -----------------------------
+    # TOP: 오늘 / 오늘 메모 / 오늘 할일 (한 줄)
+    # -----------------------------
+    c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
 
-    with top1:
+    with c1:
+        now = datetime.now()
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.subheader("오늘", anchor=False)
-        st.write(now.strftime("%Y-%m-%d (%a)"))
-        st.write(now.strftime("%H:%M"))
-        st.markdown('<div class="small-muted">이번 작업은 자동 저장되지 않습니다. 필요하면 백업을 눌러주세요.</div>', unsafe_allow_html=True)
+        st.markdown(f"### 오늘\n**{now.strftime('%Y-%m-%d')}**")
+        st.caption(now.strftime("%A"))
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with top2:
+    with c2:
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.subheader("오늘의 메모", anchor=False)
-        st.session_state["memo_text"] = st.text_area(
-            "메모",
-            value=st.session_state["memo_text"],
-            height=120,
+        st.markdown("### 오늘 메모")
+        st.session_state.dash_memo = st.text_area(
+            label="",
+            value=st.session_state.dash_memo,
+            height=140,
+            placeholder="오늘 중요한 메모를 적어두세요.",
             label_visibility="collapsed",
-            placeholder="오늘 꼭 기억할 것, 진행상황, 아이디어 등을 적어두세요."
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.write("")
-
-    left, right = st.columns([1.35, 1.0], gap="large")
-
-    # ---- Left: shortcuts ----
-    with left:
+    with c3:
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.subheader("바로가기", anchor=False)
+        st.markdown("### 오늘 할일")
 
-        with st.expander("➕ 바로가기 추가", expanded=True):
-            c1, c2 = st.columns([0.30, 0.70])
-            with c1:
-                emoji = st.text_input("아이콘(선택)", placeholder="예: 🔗", key="sc_emoji")
-            with c2:
-                title = st.text_input("이름", placeholder="예: 스마트스토어 관리자", key="sc_title")
-            url = st.text_input("URL", placeholder="https:// ...", key="sc_url")
+        add_cols = st.columns([3, 1])
+        with add_cols[0]:
+            new_todo = st.text_input("할일 추가", "", placeholder="예) 상세페이지 3개 생성", label_visibility="collapsed")
+        with add_cols[1]:
+            add_clicked = st.button("추가", use_container_width=True)
 
-            add = st.button("바로가기 추가", type="primary", use_container_width=True)
-            if add:
-                if not (title or "").strip():
-                    st.warning("이름을 입력해 주세요.")
-                elif not _valid_url(url):
-                    st.warning("URL 형식이 올바르지 않습니다. (https:// 포함)")
-                else:
-                    st.session_state["shortcuts"].insert(
-                        0,
-                        {
-                            "id": _new_id("sc"),
-                            "emoji": ((emoji or "").strip() or "🔗"),
-                            "title": title.strip(),
-                            "url": url.strip(),
-                            "created_at": datetime.datetime.now().isoformat(),
-                        },
-                    )
-                    st.success("추가되었습니다.")
-                    st.session_state["sc_emoji"] = ""
-                    st.session_state["sc_title"] = ""
-                    st.session_state["sc_url"] = ""
-                    st.rerun()
-
-        items = st.session_state["shortcuts"]
-        if not items:
-            st.info("아직 바로가기가 없습니다. 위에서 추가해보세요.")
-        else:
-            cols = st.columns(2, gap="medium")
-            for idx, sc in enumerate(items):
-                with cols[idx % 2]:
-                    st.markdown('<div class="tile">', unsafe_allow_html=True)
-                    st.markdown(f'<div class="t-title">{sc["emoji"]} {sc["title"]}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="t-url">{sc["url"]}</div>', unsafe_allow_html=True)
-                    st.link_button("열기", sc["url"], use_container_width=True)
-
-                    b1, b2, b3 = st.columns([1,1,1])
-                    with b1:
-                        if st.button("▲", key=f"sc_up_{sc['id']}", use_container_width=True, disabled=(idx==0)):
-                            items[idx-1], items[idx] = items[idx], items[idx-1]
-                            st.session_state["shortcuts"] = items
-                            st.rerun()
-                    with b2:
-                        if st.button("▼", key=f"sc_dn_{sc['id']}", use_container_width=True, disabled=(idx==len(items)-1)):
-                            items[idx+1], items[idx] = items[idx], items[idx+1]
-                            st.session_state["shortcuts"] = items
-                            st.rerun()
-                    with b3:
-                        if st.button("삭제", key=f"sc_del_{sc['id']}", use_container_width=True):
-                            st.session_state["shortcuts"] = [x for x in items if x["id"] != sc["id"]]
-                            st.rerun()
-
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # ---- Right: todo ----
-    with right:
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.subheader("오늘의 할 일", anchor=False)
-
-        with st.form("todo_add", clear_on_submit=True):
-            t = st.text_input("할 일 추가", placeholder="예: 신상 5개 상세페이지 생성", label_visibility="collapsed")
-            ok = st.form_submit_button("추가", use_container_width=True)
-        if ok and (t or "").strip():
-            st.session_state["todo_items"].insert(
-                0,
-                {"id": _new_id("td"), "text": t.strip(), "done": False, "created_at": datetime.datetime.now().isoformat()},
+        if add_clicked and new_todo.strip():
+            st.session_state.dash_todos.append(
+                {"id": str(uuid.uuid4()), "text": new_todo.strip(), "done": False}
             )
             st.rerun()
 
-        items = st.session_state["todo_items"]
-        if not items:
-            st.caption("할 일을 추가해보세요.")
-        else:
-            for it in items:
-                c1, c2 = st.columns([0.85, 0.15])
-                with c1:
-                    it["done"] = st.checkbox(it["text"], value=it.get("done", False), key=f"td_ck_{it['id']}")
-                with c2:
-                    if st.button("삭제", key=f"td_del_{it['id']}", use_container_width=True):
-                        st.session_state["todo_items"] = [x for x in items if x["id"] != it["id"]]
-                        st.rerun()
-
-            done_count = sum(1 for x in st.session_state["todo_items"] if x.get("done"))
-            if done_count:
-                if st.button(f"완료 항목 {done_count}개 삭제", use_container_width=True):
-                    st.session_state["todo_items"] = [x for x in st.session_state["todo_items"] if not x.get("done")]
-                    st.rerun()
+        # 리스트
+        remove_ids = []
+        for item in st.session_state.dash_todos:
+            row = st.columns([0.12, 0.74, 0.14])
+            item["done"] = row[0].checkbox("", value=item.get("done", False), key=f"todo_done_{item['id']}")
+            row[1].markdown(item["text"])
+            if row[2].button("삭제", key=f"todo_del_{item['id']}"):
+                remove_ids.append(item["id"])
+        if remove_ids:
+            st.session_state.dash_todos = [t for t in st.session_state.dash_todos if t["id"] not in remove_ids]
+            st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
+    # -----------------------------
+    # BOTTOM: 바로가기 (하단 배치)
+    # -----------------------------
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 바로가기")
+
+    # 보기: 카드 그리드
+    shortcuts = st.session_state.dash_shortcuts
+    if not shortcuts:
+        st.info("아직 바로가기가 없습니다. 아래에서 추가해보세요.")
+    else:
+        cols = st.columns(4, gap="medium")
+        for i, sc in enumerate(shortcuts):
+            with cols[i % 4]:
+                st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
+                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
+                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
+                st.caption(sc.get("url", ""))
+                st.link_button("열기", sc.get("url", ""), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+    with st.expander("바로가기 추가/편집", expanded=False):
+        st.markdown("**새 바로가기 추가**")
+        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
+        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
+        title = a2.text_input("제목", "", key="sc_add_title")
+        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
+        if a4.button("추가", use_container_width=True):
+            if not title.strip():
+                st.error("제목을 입력해 주세요.")
+            elif not _valid_url(url):
+                st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
+            else:
+                st.session_state.dash_shortcuts.append(
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
+                )
+                st.success("추가되었습니다.")
+                st.rerun()
+
+        st.divider()
+        st.markdown("**기존 바로가기 관리**")
+        for sc in list(st.session_state.dash_shortcuts):
+            row = st.columns([1.2, 2.2, 4.2, 1.2])
+            row[0].markdown(sc.get("emoji", "🔗"))
+            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
+            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
+            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+                st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
+                st.rerun()
+            # 저장(자동 반영)
+            sc["title"] = new_title
+            sc["url"] = new_url
+
+    st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
 # -----------------------------
