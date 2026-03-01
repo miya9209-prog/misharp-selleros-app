@@ -1,57 +1,84 @@
-
-import json
 import datetime as dt
-import streamlit as st
+import json
 from urllib.parse import urlparse
 
+import streamlit as st
+
+# =========================
+# Branding / Global
+# =========================
+APP_BRAND = "MISHARP SELLER OS"
 APP_TITLE = "미샵 셀러 스튜디오 OS v1"
 
-PAGES = {
-    "dashboard": {
-        "name": "대시보드",
-        "title": "나만의 업무 대시보드",
-        "subtitle": "바로가기와 오늘의 할 일을 한 화면에 정리하세요.",
-    },
-    "detail": {
-        "name": "상세페이지 생성",
-        "title": "상세페이지 생성",
-        "subtitle": "상품 이미지를 정리해 상세페이지 제작을 빠르게 시작합니다.",
-    },
-    "thumb": {
-        "name": "썸네일 생성",
-        "title": "썸네일 생성",
-        "subtitle": "규격에 맞춰 이미지/텍스트를 배치해 썸네일을 만듭니다.",
-    },
-    "gif": {
-        "name": "GIF 생성",
-        "title": "GIF 생성",
-        "subtitle": "상품 컷을 연결해 GIF를 생성합니다.",
-    },
-    "collector": {
-        "name": "이미지 수집툴",
-        "title": "이미지 수집툴",
-        "subtitle": "기존 수집툴을 바로 실행합니다.",
-    },
-    "blog": {
-        "name": "블로그 작성",
-        "title": "블로그 작성",
-        "subtitle": "상품 정보를 바탕으로 블로그 글 초안을 만듭니다.",
-    },
-    "shortform": {
-        "name": "숏폼 메이커",
-        "title": "숏폼 메이커",
-        "subtitle": "릴스/쇼츠용 콘티와 카피 아이디어를 정리합니다.",
-    },
+IMAGE_COLLECTOR_URL = "https://misharp-image-crop-v1.streamlit.app/"
+# (추후) 각 툴이 통합되면 내부 페이지로 교체
+EXTERNAL_PLACEHOLDER = {
+    "detail": None,
+    "thumb": None,
+    "gif": None,
+    "blog": None,
+    "shortform": None,
 }
 
-IMAGE_COLLECTOR_URL = "https://misharp-image-crop-v1.streamlit.app/"
+PAGES = [
+    {
+        "key": "dashboard",
+        "name": "대시보드",
+        "title": "나만의 업무 대시보드",
+        "subtitle": "업무에 필요한 바로가기 + 오늘의 할 일을 한 화면에 정리하세요.",
+        "icon": "📌",
+    },
+    {
+        "key": "detail",
+        "name": "상세페이지 생성",
+        "title": "상세페이지 생성기",
+        "subtitle": "상품 상세페이지 제작을 빠르게 시작할 수 있도록 이미지/자료를 정리합니다.",
+        "icon": "🧩",
+    },
+    {
+        "key": "thumb",
+        "name": "썸네일 생성",
+        "title": "썸네일 생성기",
+        "subtitle": "규격에 맞춰 대표 이미지를 만들고, 채널별 썸네일을 빠르게 뽑습니다.",
+        "icon": "🖼️",
+    },
+    {
+        "key": "gif",
+        "name": "GIF 생성",
+        "title": "GIF 생성기",
+        "subtitle": "상품 컷/영상으로 GIF를 만들어 상세·배너·SNS에 바로 쓰도록 준비합니다.",
+        "icon": "🎞️",
+    },
+    {
+        "key": "collector",
+        "name": "이미지 수집툴",
+        "title": "이미지 수집툴",
+        "subtitle": "기존 수집툴을 열어 이미지 크롭/정리를 바로 진행합니다.",
+        "icon": "🧲",
+    },
+    {
+        "key": "blog",
+        "name": "블로그 작성",
+        "title": "블로그 글 자동 초안",
+        "subtitle": "상품 정보를 바탕으로 SEO 친화적인 블로그 글 초안을 생성합니다.",
+        "icon": "✍️",
+    },
+    {
+        "key": "shortform",
+        "name": "숏폼 메이커",
+        "title": "숏폼 콘텐츠 메이커",
+        "subtitle": "릴스/쇼츠용 콘티·후킹 문구·구성 아이디어를 빠르게 정리합니다.",
+        "icon": "🚀",
+    },
+]
 
-def _init_state():
-    st.session_state.setdefault("page", "dashboard")
-    st.session_state.setdefault("shortcuts", [])  # list[{title,url,emoji,created_at}]
-    st.session_state.setdefault("memo_text", "")
-    st.session_state.setdefault("todo_items", [])  # list[{text,done}]
-    st.session_state.setdefault("todo_new", "")
+
+def _page_meta(page_key: str) -> dict:
+    for p in PAGES:
+        if p["key"] == page_key:
+            return p
+    return PAGES[0]
+
 
 def _valid_url(u: str) -> bool:
     try:
@@ -60,279 +87,326 @@ def _valid_url(u: str) -> bool:
     except Exception:
         return False
 
+
+def _init_state():
+    st.session_state.setdefault("page", "dashboard")
+
+    # dashboard state
+    st.session_state.setdefault("shortcuts", [])  # list[{id,title,url,emoji,created_at}]
+    st.session_state.setdefault("memo_text", "")
+    st.session_state.setdefault("todo_items", [])  # list[{id,text,done,created_at}]
+    st.session_state.setdefault("todo_new", "")
+
+    # UI toggles
+    st.session_state.setdefault("dash_edit_mode", True)
+
+
 def inject_css():
     st.markdown(
         """
         <style>
-          /* overall */
-          .block-container { padding-top: 2.0rem !important; padding-bottom: 2.5rem !important; }
-          header[data-testid="stHeader"] { background: rgba(0,0,0,0) !important; }
-          /* avoid top clipping on some embeds */
-          section.main > div { padding-top: 0.25rem; }
-
-          /* Sidebar brand button */
-          div[data-testid="stSidebar"] .brand-btn button {
-            width: 100%;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            padding: 0.85rem 0.9rem !important;
-            border-radius: 12px !important;
+          :root{
+            --card-bg: rgba(255,255,255,0.06);
+            --card-border: rgba(255,255,255,0.10);
+            --muted: rgba(255,255,255,0.70);
           }
-          div[data-testid="stSidebar"] .brand-btn button:hover {
-            filter: brightness(1.08);
+          /* Give breathing room so top header/card never looks clipped */
+          .block-container { padding-top: 2.2rem !important; padding-bottom: 2.6rem !important; max-width: 1200px; }
+          header[data-testid="stHeader"] { background: rgba(0,0,0,0) !important; }
+
+          /* Sidebar */
+          [data-testid="stSidebar"] { border-right: 1px solid rgba(255,255,255,0.08); }
+          [data-testid="stSidebar"] .stButton button { width: 100%; border-radius: 12px; }
+
+          /* Brand button */
+          .brand-btn button{
+            width: 100%;
+            padding: 0.85rem 0.95rem !important;
+            font-weight: 900 !important;
+            letter-spacing: 0.6px;
+            font-size: 1.05rem !important;
+            border-radius: 14px !important;
+          }
+          .brand-btn button:hover{
+            filter: brightness(1.06);
             transform: translateY(-1px);
           }
 
-          /* Title card */
-          .title-card {
+          /* Header card */
+          .hero {
+            padding: 1.35rem 1.5rem;
             border-radius: 18px;
-            padding: 22px 24px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            margin-top: 8px;
-            margin-bottom: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.20);
+            margin-bottom: 1.2rem;
           }
-          .title-card h1 { margin: 0 !important; line-height: 1.15; }
-          .title-card p { margin: 10px 0 0 0 !important; opacity: 0.85; }
+          .hero .brandline{
+            font-size: 0.90rem;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 0.35rem;
+          }
+          .hero .title{
+            font-size: 2.05rem;
+            font-weight: 900;
+            margin: 0.1rem 0 0.45rem 0;
+          }
+          .hero .subtitle{
+            font-size: 1.02rem;
+            color: var(--muted);
+            margin: 0.05rem 0 0 0;
+            line-height: 1.5;
+          }
 
-          /* Dashboard cards */
-          .dash-card {
+          /* Cards */
+          .card{
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 16px;
-            padding: 18px 18px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
+            padding: 1.1rem 1.1rem;
           }
-          .muted { opacity: 0.75; }
-          .shortcut-grid a {
-            text-decoration: none !important;
+
+          /* Shortcut tiles */
+          .tile{
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 14px;
+            padding: 0.85rem 0.9rem;
           }
+          .tile .t-title{ font-weight: 800; margin-bottom: 0.25rem; }
+          .tile .t-url{ color: rgba(255,255,255,0.65); font-size: 0.88rem; overflow-wrap:anywhere; }
+
+          /* Make link buttons look nice */
+          .stLinkButton a{
+            border-radius: 12px !important;
+            padding: 0.65rem 0.9rem !important;
+          }
+
+          /* Reduce “empty top space” in some components */
+          section.main > div { padding-top: 0.25rem; }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-def sidebar():
+
+def sidebar_nav():
     with st.sidebar:
         st.markdown('<div class="brand-btn">', unsafe_allow_html=True)
-        if st.button("MISHARP SELLER OS", use_container_width=True):
+        if st.button(APP_BRAND, key="brand_home"):
             st.session_state.page = "dashboard"
         st.markdown("</div>", unsafe_allow_html=True)
 
-        st.caption(APP_TITLE)
-        st.divider()
+        st.caption("좌측 메뉴에서 생성기를 선택하세요.")
 
-        # menu
-        for key in ["dashboard","detail","thumb","gif","collector","blog","shortform"]:
-            label = PAGES[key]["name"]
-            is_active = (st.session_state.page == key)
-            if st.button(("✅ " if is_active else "") + label, use_container_width=True):
-                st.session_state.page = key
+        for p in PAGES:
+            label = f'{p["icon"]}  {p["name"]}'
+            is_active = st.session_state.page == p["key"]
+            if st.button(label, key=f"nav_{p['key']}", type="primary" if is_active else "secondary"):
+                st.session_state.page = p["key"]
 
         st.divider()
-        with st.expander("📦 내 대시보드 저장/복원", expanded=False):
-            export = {
-                "shortcuts": st.session_state.shortcuts,
-                "memo_text": st.session_state.memo_text,
-                "todo_items": st.session_state.todo_items,
-                "exported_at": dt.datetime.now().isoformat(),
-            }
-            st.download_button(
-                "현재 설정 JSON 다운로드",
-                data=json.dumps(export, ensure_ascii=False, indent=2).encode("utf-8"),
-                file_name="misharp_dashboard_settings.json",
-                mime="application/json",
-                use_container_width=True,
-            )
-            up = st.file_uploader("JSON 업로드(복원)", type=["json"])
-            if up is not None:
-                try:
-                    data = json.loads(up.read().decode("utf-8"))
-                    st.session_state.shortcuts = data.get("shortcuts", []) or []
-                    st.session_state.memo_text = data.get("memo_text", "") or ""
-                    st.session_state.todo_items = data.get("todo_items", []) or []
-                    st.success("복원 완료! 좌측 메뉴에서 대시보드로 돌아가 확인하세요.")
-                except Exception as e:
-                    st.error(f"복원 실패: {e}")
+        st.caption("© 2026 misharpcompany. 내부 전용.")
 
-def title_area(page_key: str):
-    meta = PAGES[page_key]
+
+def render_header(page_key: str):
+    meta = _page_meta(page_key)
+    now = dt.datetime.now()
+    datestr = now.strftime("%Y.%m.%d (%a)").replace("Mon", "월").replace("Tue", "화").replace("Wed", "수").replace("Thu", "목").replace("Fri", "금").replace("Sat", "토").replace("Sun", "일")
+    timestr = now.strftime("%H:%M")
+
     st.markdown(
         f"""
-        <div class="title-card">
-          <h1>{meta["title"]}</h1>
-          <p>{meta["subtitle"]}</p>
+        <div class="hero">
+          <div class="brandline">{APP_TITLE} · {datestr} {timestr}</div>
+          <div class="title">{meta["title"]}</div>
+          <div class="subtitle">{meta["subtitle"]}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+
+# =========================
+# Dashboard
+# =========================
+def _new_id(prefix: str) -> str:
+    return f"{prefix}_{dt.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+
 
 def dashboard_page():
-    title_area("dashboard")
+    left, right = st.columns([1.35, 1.0], gap="large")
 
-    # Top date row (like a personal dashboard header)
-    now = dt.datetime.now()
-    weekday_kr = ["월","화","수","목","금","토","일"][now.weekday()]
-    st.markdown(
-        f"""
-        <div class="dash-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div>
-              <div style="font-size:18px;font-weight:800;">{now.strftime('%Y.%m.%d')} ({weekday_kr})</div>
-              <div class="muted" style="margin-top:4px;">오늘도 한 번에 정리하고, 빨리 끝내기.</div>
-            </div>
-            <div class="muted" style="font-weight:700;">{now.strftime('%p %I:%M')}</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.write("")
+    # ---- Left: shortcuts ----
+    with left:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("바로가기", anchor=False)
 
-    col_l, col_r = st.columns([3.2, 2.0], gap="large")
-
-    # Left: shortcuts
-    with col_l:
-        st.markdown("### 🔗 내 바로가기")
         with st.expander("➕ 바로가기 추가", expanded=True):
-            c1, c2, c3 = st.columns([1.2, 3.2, 1.2], gap="small")
+            c1, c2 = st.columns([0.38, 0.62])
             with c1:
-                emoji = st.text_input("아이콘", value="🔗", max_chars=2, help="예: 🛒 📦 📊 ✉️")
+                emoji = st.text_input("아이콘(선택)", placeholder="예: 🧵", key="sc_emoji")
             with c2:
-                title = st.text_input("이름", placeholder="예: 카페24 관리자 / 스마트스토어 / 카카오채널", max_chars=40)
-            with c3:
-                url = st.text_input("URL", placeholder="https://...", max_chars=300)
+                title = st.text_input("이름", placeholder="예: 도매처 주문관리", key="sc_title")
 
-            add = st.button("바로가기 추가", type="primary", use_container_width=True)
+            url = st.text_input("URL", placeholder="https:// ...", key="sc_url")
+
+            add = st.button("바로가기 추가", type="primary")
             if add:
                 if not title.strip():
-                    st.warning("이름을 입력해주세요.")
+                    st.warning("이름을 입력해 주세요.")
                 elif not _valid_url(url):
-                    st.warning("URL 형식이 올바르지 않습니다. https:// 로 시작하는 주소를 넣어주세요.")
+                    st.warning("URL 형식이 올바르지 않습니다. (https:// 포함)")
                 else:
-                    st.session_state.shortcuts.insert(0, {
-                        "emoji": (emoji.strip() or "🔗")[:2],
-                        "title": title.strip(),
-                        "url": url.strip(),
-                        "created_at": dt.datetime.now().isoformat(timespec="seconds"),
-                    })
-                    st.success("추가 완료!")
+                    st.session_state.shortcuts.insert(
+                        0,
+                        {
+                            "id": _new_id("sc"),
+                            "emoji": (emoji.strip() or "🔗"),
+                            "title": title.strip(),
+                            "url": url.strip(),
+                            "created_at": dt.datetime.now().isoformat(),
+                        },
+                    )
+                    st.success("추가되었습니다.")
+                    st.session_state.sc_emoji = ""
+                    st.session_state.sc_title = ""
+                    st.session_state.sc_url = ""
 
-        if not st.session_state.shortcuts:
+        # Grid
+        items = st.session_state.shortcuts
+        if not items:
             st.info("아직 바로가기가 없습니다. 위에서 추가해보세요.")
         else:
-            # Render shortcuts list
-            for i, sc in enumerate(st.session_state.shortcuts):
-                box = st.container(border=True)
-                with box:
-                    cA, cB = st.columns([6.5, 3.5], vertical_alignment="center")
-                    with cA:
-                        st.markdown(f"**{sc.get('emoji','🔗')} {sc.get('title','')}**")
-                        st.caption(sc.get("url",""))
-                    with cB:
-                        open_col, up_col, down_col, del_col = st.columns([2.3, 1, 1, 1])
-                        with open_col:
-                            st.link_button("열기", sc.get("url",""), use_container_width=True)
-                        with up_col:
-                            if st.button("↑", key=f"sc_up_{i}", use_container_width=True, help="위로"):
-                                if i > 0:
-                                    st.session_state.shortcuts[i-1], st.session_state.shortcuts[i] = st.session_state.shortcuts[i], st.session_state.shortcuts[i-1]
-                                    st.rerun()
-                        with down_col:
-                            if st.button("↓", key=f"sc_dn_{i}", use_container_width=True, help="아래로"):
-                                if i < len(st.session_state.shortcuts)-1:
-                                    st.session_state.shortcuts[i+1], st.session_state.shortcuts[i] = st.session_state.shortcuts[i], st.session_state.shortcuts[i+1]
-                                    st.rerun()
-                        with del_col:
-                            if st.button("✕", key=f"sc_del_{i}", use_container_width=True, help="삭제"):
-                                st.session_state.shortcuts.pop(i)
-                                st.rerun()
+            cols = st.columns(2, gap="medium")
+            for idx, sc in enumerate(items):
+                with cols[idx % 2]:
+                    st.markdown('<div class="tile">', unsafe_allow_html=True)
+                    st.markdown(f'<div class="t-title">{sc["emoji"]} {sc["title"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="t-url">{sc["url"]}</div>', unsafe_allow_html=True)
+                    st.link_button("열기", sc["url"], use_container_width=True)
+                    if st.button("삭제", key=f"del_{sc['id']}", use_container_width=True):
+                        st.session_state.shortcuts = [x for x in st.session_state.shortcuts if x["id"] != sc["id"]]
+                        st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-    # Right: memo + todos
-    with col_r:
-        st.markdown("### 📝 오늘의 메모")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---- Right: todo + memo ----
+    with right:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("오늘의 할 일", anchor=False)
+
+        new_text = st.text_input("할 일 추가", placeholder="예: 신상 3개 촬영 요청", key="todo_new")
+        if st.button("추가", type="primary", use_container_width=True):
+            if new_text.strip():
+                st.session_state.todo_items.insert(
+                    0,
+                    {"id": _new_id("td"), "text": new_text.strip(), "done": False, "created_at": dt.datetime.now().isoformat()},
+                )
+                st.session_state.todo_new = ""
+                st.rerun()
+
+        if not st.session_state.todo_items:
+            st.caption("할 일이 비어있어요. 오늘의 1~3개만 적어도 충분합니다.")
+        else:
+            for t in st.session_state.todo_items:
+                c1, c2 = st.columns([0.84, 0.16])
+                with c1:
+                    t["done"] = st.checkbox(t["text"], value=bool(t.get("done", False)), key=f"chk_{t['id']}")
+                with c2:
+                    if st.button("🗑️", key=f"rm_{t['id']}", use_container_width=True):
+                        st.session_state.todo_items = [x for x in st.session_state.todo_items if x["id"] != t["id"]]
+                        st.rerun()
+
+            if st.button("완료 항목 삭제", use_container_width=True):
+                st.session_state.todo_items = [x for x in st.session_state.todo_items if not x.get("done")]
+                st.rerun()
+
+        st.divider()
+        st.subheader("메모", anchor=False)
         st.session_state.memo_text = st.text_area(
-            "메모",
+            "오늘 메모",
             value=st.session_state.memo_text,
-            height=180,
-            placeholder="오늘 처리할 것, 꼭 확인할 것, 아이디어 등을 적어두세요.",
+            placeholder="예: CS 이슈 / 발주 메모 / 촬영 체크리스트 ...",
+            height=220,
             label_visibility="collapsed",
         )
 
-        st.markdown("### ✅ 오늘의 할 일")
-        new = st.text_input("할 일 추가", value=st.session_state.todo_new, placeholder="예: 신상 촬영컷 정리 / 배너 교체", label_visibility="collapsed")
-        add_todo = st.button("추가", use_container_width=True)
-        if add_todo and new.strip():
-            st.session_state.todo_items.insert(0, {"text": new.strip(), "done": False})
-            st.session_state.todo_new = ""
-            st.rerun()
+        # quick export/import
+        with st.expander("백업/복원 (JSON)", expanded=False):
+            export = {
+                "shortcuts": st.session_state.shortcuts,
+                "todo_items": st.session_state.todo_items,
+                "memo_text": st.session_state.memo_text,
+            }
+            st.download_button(
+                "내 대시보드 백업(JSON) 다운로드",
+                data=json.dumps(export, ensure_ascii=False, indent=2).encode("utf-8"),
+                file_name="misharp_dashboard_backup.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+            upl = st.file_uploader("백업 파일 업로드", type=["json"])
+            if upl is not None:
+                try:
+                    data = json.loads(upl.read().decode("utf-8"))
+                    st.session_state.shortcuts = list(data.get("shortcuts", []))
+                    st.session_state.todo_items = list(data.get("todo_items", []))
+                    st.session_state.memo_text = str(data.get("memo_text", ""))
+                    st.success("복원 완료! 화면을 새로고침합니다.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"복원 실패: {e}")
 
-        if not st.session_state.todo_items:
-            st.caption("할 일이 아직 없습니다.")
-        else:
-            for idx, item in enumerate(st.session_state.todo_items):
-                row = st.columns([0.9, 5.1, 1.0, 1.0, 1.0], vertical_alignment="center")
-                with row[0]:
-                    done = st.checkbox("done", value=item.get("done", False), key=f"todo_done_{idx}", label_visibility="collapsed")
-                    st.session_state.todo_items[idx]["done"] = done
-                with row[1]:
-                    txt = item.get("text","")
-                    if done:
-                        st.markdown(f"~~{txt}~~")
-                    else:
-                        st.markdown(txt)
-                with row[2]:
-                    if st.button("↑", key=f"todo_up_{idx}", use_container_width=True):
-                        if idx > 0:
-                            st.session_state.todo_items[idx-1], st.session_state.todo_items[idx] = st.session_state.todo_items[idx], st.session_state.todo_items[idx-1]
-                            st.rerun()
-                with row[3]:
-                    if st.button("↓", key=f"todo_dn_{idx}", use_container_width=True):
-                        if idx < len(st.session_state.todo_items)-1:
-                            st.session_state.todo_items[idx+1], st.session_state.todo_items[idx] = st.session_state.todo_items[idx], st.session_state.todo_items[idx+1]
-                            st.rerun()
-                with row[4]:
-                    if st.button("✕", key=f"todo_del_{idx}", use_container_width=True):
-                        st.session_state.todo_items.pop(idx)
-                        st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.divider()
-        st.caption("Tip) 좌측 사이드바에서 대시보드 설정을 JSON으로 저장해두면 다음에 그대로 복원 가능합니다.")
 
-def placeholder_page(key: str):
-    title_area(key)
-    st.info("이 화면은 다음 단계에서 기능을 연결합니다. (현재는 UX/레이아웃 뼈대만 고정)")
+# =========================
+# Placeholder pages
+# =========================
+def placeholder_page(page_key: str):
+    meta = _page_meta(page_key)
 
-def image_collector_page():
-    title_area("collector")
-    c1, c2 = st.columns([1,1])
-    with c1:
-        st.link_button("새 탭에서 열기", IMAGE_COLLECTOR_URL, use_container_width=True)
-    with c2:
-        st.caption("iframe이 막히는 환경이 있어, 새 탭 열기도 함께 제공합니다.")
-    st.components.v1.iframe(IMAGE_COLLECTOR_URL, height=900, scrolling=True)
+    if page_key == "collector":
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.write("아래 버튼을 눌러 **이미지 수집툴**을 여세요.")
+        st.link_button("이미지 수집툴 열기", IMAGE_COLLECTOR_URL, use_container_width=True)
+        st.caption("※ Streamlit 정책상 현재 페이지에 '완전한 임베드'가 제한될 수 있어, 우선 링크 방식으로 제공합니다.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.write("이 페이지는 **통합본 구조를 먼저 잡기 위한 자리**입니다.")
+    st.write("형준님이 올려주신 각 레포(zip)의 기능을 **여기 안으로 하나씩 이식**해가며 완성합니다.")
+    st.divider()
+
+    st.write("다음 단계(개발 순서):")
+    st.markdown(
+        """
+        - 1) 상세페이지 생성기: 기존 repo `app.py` 기능을 모듈화해서 이 페이지에 탑재  
+        - 2) 썸네일 → 3) GIF → 4) 블로그 → 5) 숏폼  
+        """
+    )
+    st.info("지금은 UI/네비게이션/대시보드(개인화)부터 확정하는 단계입니다.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 def main():
-    st.set_page_config(page_title=APP_TITLE, layout="wide")
+    st.set_page_config(page_title=APP_TITLE, page_icon="🧰", layout="wide")
+
     _init_state()
     inject_css()
-    sidebar()
+    sidebar_nav()
 
-    page = st.session_state.page
+    page_key = st.session_state.page
+    render_header(page_key)
 
-    if page == "dashboard":
+    if page_key == "dashboard":
         dashboard_page()
-    elif page == "collector":
-        image_collector_page()
-    elif page in PAGES:
-        placeholder_page(page)
     else:
-        st.session_state.page = "dashboard"
-        st.rerun()
+        placeholder_page(page_key)
 
-    st.markdown(
-        "<div style='opacity:.7;text-align:center;margin-top:26px;font-size:12px;'>© 2026 misharpcompany. All rights reserved.</div>",
-        unsafe_allow_html=True
-    )
 
 if __name__ == "__main__":
     main()
