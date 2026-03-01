@@ -1,1 +1,11 @@
-streamlit>=1.32
+beautifulsoup4>=4.12.3
+imageio
+imageio-ffmpeg
+lxml>=5.2.2
+numpy
+openai>=1.40.0
+openpyxl>=3.1.2
+pandas>=2.2.2
+Pillow>=10.0.0
+requests>=2.32.0
+streamlit>=1.36.0
