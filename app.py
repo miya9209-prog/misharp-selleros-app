@@ -135,7 +135,7 @@ def run_embedded_app(app_key: str):
         if hasattr(module, "render") and callable(getattr(module, "render")):
             module.render()
         else:
-            # This tool does not expose render(); assume it renders at import time.
+         pass   # This tool does not expose render(); assume it renders at import time.
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
