@@ -1,242 +1,383 @@
+import json
 
 import streamlit as st
+import streamlit.components.v1 as components
 
-from modules import detail_page, thumbnail, gif_maker, blog
+from modules import blog, detail_page, gif_maker, thumbnail
 
-APP_TITLE = "미샵 셀러 스튜디오 OS v1"
-APP_SUBTITLE = "온라인 셀러를 위한 원스톱 상세페이지 콘텐츠 자동 생성"
+# ============================================================
+# MISHARP SELLER OS v1 (Streamlit)
+# - Sidebar: list tools
+# - Main: dynamic title/subtitle per tool
+# - Dashboard: user can create shortcuts (session-based + JSON import/export)
+# - Collector: embeds existing external Streamlit app via iframe
+# ============================================================
 
-MENU = [
-    ("대시보드", "dashboard"),
-    ("상세페이지 생성", "detail"),
-    ("원고 생성", "copy"),
-    ("썸네일 생성", "thumb"),
-    ("GIF 생성", "gif"),
-    ("이미지 수집툴", "collector"),
-    ("블로그 작성", "blog"),
-    ("숏폼 메이커", "shortform"),
+APP_BRAND = "MISHARP SELLER OS"
+APP_TITLE_DEFAULT = "미샵 셀러 스튜디오 OS v1"
+
+COLLECTOR_URL = "https://misharp-image-crop-v1.streamlit.app/"
+
+
+PAGES = [
+    ("대시보드", "dashboard", "오늘 필요한 생성기만 골라, 바로가기로 묶어두세요."),
+    ("상세페이지 생성", "detail", "상품 이미지만 올리면, 상세페이지 이미지 자동 생성."),
+    ("원고 생성", "copy", "상품 특장점 기반으로 상세페이지 원고를 빠르게 뽑아드립니다."),
+    ("썸네일 생성", "thumb", "썸네일 규격에 맞춰 자동 배치·텍스트 합성."),
+    ("GIF 생성", "gif", "이미지/컷을 이어 GIF로 만들고 홍보용으로 바로 저장."),
+    ("이미지 수집툴", "collector", "상세페이지 URL 이미지 수집·정리(기존 툴 연동)."),
+    ("블로그 작성", "blog", "상품 정보 기반으로 블로그 글/구성 자동 생성."),
+    ("숏폼 메이커", "shortform", "릴스/쇼츠용 훅·콘티·자막 아이디어 생성."),
 ]
 
-def _init_state():
-    st.session_state.setdefault("selleros_inputs", {
-        "상품명": "",
-        "가격": "",
-        "소재": "",
-        "핏": "",
-        "사이즈": "",
-        "컬러": "",
-        "키워드": "",
-        "금칙어": "",
-        "상품URL": "",
-        "특장점5줄": ["", "", "", "", ""],
-    })
+PAGE_BY_KEY = {k: {"label": l, "title": l, "subtitle": s} for (l, k, s) in PAGES}
 
-def inject_css():
+
+def _init_state() -> None:
+    st.session_state.setdefault("page", "dashboard")
+    st.session_state.setdefault("selleros_shortcuts", ["detail", "thumb", "gif", "blog"])
+
+
+def _get_query_page() -> str | None:
+    """Read ?page=... from query params (supports both old/new Streamlit APIs)."""
+    try:
+        qp = st.query_params
+        v = qp.get("page")
+        if isinstance(v, list):
+            return v[0] if v else None
+        return v
+    except Exception:
+        qp = st.experimental_get_query_params()
+        v = qp.get("page")
+        return v[0] if v else None
+
+
+def _set_query_page(page_key: str) -> None:
+    try:
+        st.query_params["page"] = page_key
+    except Exception:
+        st.experimental_set_query_params(page=page_key)
+
+
+def _goto(page_key: str) -> None:
+    st.session_state["page"] = page_key
+    _set_query_page(page_key)
+    st.rerun()
+
+
+def inject_css() -> None:
     st.markdown(
         """
 <style>
-/* ---- base ---- */
-html, body { background: #0b1220; }
-div[data-testid="stAppViewContainer"] { background: radial-gradient(1200px 600px at 20% 0%, rgba(33,82,163,0.18), transparent 55%),
-                                      radial-gradient(1000px 700px at 80% 10%, rgba(202,57,57,0.12), transparent 55%),
-                                      linear-gradient(180deg, #07101e 0%, #0b1220 60%, #07101e 100%); }
-.main { padding-top: 14px; padding-bottom: 70px; }
+/* ---- page layout ---- */
+.block-container { padding-top: 1.2rem; padding-bottom: 3.2rem; }
 
-/* hide default streamlit footer & menu */
-footer {visibility: hidden;}
-#MainMenu {visibility: hidden;}
-
-/* ---- header card ---- */
+/* ---- hero ---- */
 .misharp-hero {
-  background: rgba(255,255,255,0.94);
   border-radius: 18px;
-  padding: 28px 28px;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.16);
+  padding: 26px 28px;
+  margin: 0 0 14px 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.10);
 }
 .misharp-hero h1 {
   margin: 0;
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  color: #111827;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
 }
 .misharp-hero p {
   margin: 10px 0 0 0;
+  color: rgba(255,255,255,0.80);
   font-size: 14px;
-  color: rgba(17,24,39,0.65);
 }
-
-/* ---- sidebar ---- */
-section[data-testid="stSidebar"] { background: rgba(0,0,0,0.42); border-right: 1px solid rgba(255,255,255,0.08); }
-section[data-testid="stSidebar"] .stRadio label { color: rgba(255,255,255,0.88); }
-section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
-  padding: 8px 10px;
-  border-radius: 12px;
-}
-section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {
-  background: rgba(255,255,255,0.08);
-}
-section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] { margin: 2px 0; }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 { color: rgba(255,255,255,0.92); }
 
 /* ---- cards ---- */
 .misharp-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 18px 18px;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.08);
 }
-.misharp-muted { color: rgba(255,255,255,0.72); }
-.misharp-h { color: rgba(255,255,255,0.92); font-weight: 800; margin: 0 0 10px 0; }
+.misharp-h {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+}
+.misharp-muted { color: rgba(255,255,255,0.75); }
 
-/* ---- footer ---- */
-.misharp-footer {
-  position: fixed;
-  left: 0; bottom: 0;
-  width: 100%;
-  padding: 10px 16px;
-  background: rgba(0,0,0,0.55);
-  color: rgba(255,255,255,0.82);
-  border-top: 1px solid rgba(255,255,255,0.10);
-  font-size: 12px;
-  z-index: 999999;
-  backdrop-filter: blur(10px);
+/* ---- sidebar ---- */
+section[data-testid="stSidebar"] { background: rgba(0,0,0,0.42); border-right: 1px solid rgba(255,255,255,0.08); }
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 { color: rgba(255,255,255,0.92); }
+
+a.misharp-brand {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.95) !important;
+  text-decoration: none !important;
+  padding: 8px 10px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+a.misharp-brand:hover { background: rgba(255,255,255,0.10); }
+
+/* ---- buttons ---- */
+div.stButton > button {
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+}
+div.stButton > button:hover {
+  border: 1px solid rgba(255,255,255,0.26);
+  background: rgba(255,255,255,0.08);
 }
 </style>
         """,
         unsafe_allow_html=True,
     )
 
-def render_hero():
+
+def render_hero(title: str, subtitle: str) -> None:
     st.markdown(
         f"""
 <div class="misharp-hero">
-  <h1>{APP_TITLE}</h1>
-  <p>{APP_SUBTITLE}</p>
+  <h1>{title}</h1>
+  <p>{subtitle}</p>
 </div>
         """,
         unsafe_allow_html=True,
     )
 
-def render_top_actions():
-    c1, c2, c3 = st.columns([1,1,1])
-    with c1:
-        st.button("FREE | 무로그인 시작", use_container_width=True)
-    with c2:
-        st.button("PRO 가입 (준비중)", use_container_width=True, disabled=True)
-    with c3:
-        st.button("사용/협업 문의", use_container_width=True)
 
-def render_dashboard(shared):
+def render_top_actions() -> None:
+    c1, c2, c3 = st.columns([1.2, 1.2, 1.6])
+    with c1:
+        st.button("입력 초기화", use_container_width=True)
+    with c2:
+        st.button("전체 패키지 ZIP 다운로드", use_container_width=True)
+    with c3:
+        st.caption("※ 이 버튼들은 기능 개발 단계에서 하나씩 연결합니다.")
+
+
+def render_dashboard() -> None:
     st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
-    st.markdown('<div class="misharp-h">대시보드</div>', unsafe_allow_html=True)
-    st.markdown(
-        """
-- 왼쪽 메뉴에서 원하는 생성기를 선택하세요.
-- 각 생성기는 **독립적으로** 사용할 수 있습니다. (공통 입력은 선택)
-- 결과물은 각 화면에서 다운로드할 수 있습니다.
+    st.markdown('<div class="misharp-h">사용자 바로가기(대시보드)</div>', unsafe_allow_html=True)
+    st.caption("원하는 생성기만 골라 대시보드에 고정해두고, 클릭 한 번으로 이동하세요.")
+
+    shortcuts: list[str] = st.session_state.get("selleros_shortcuts", [])
+    available = [k for (_, k, _) in PAGES if k != "dashboard"]
+
+    a1, a2, a3 = st.columns([2, 1, 1])
+    with a1:
+        add_key = st.selectbox(
+            "추가할 생성기",
+            options=available,
+            format_func=lambda k: PAGE_BY_KEY.get(k, {}).get("label", k),
+        )
+    with a2:
+        if st.button("추가", use_container_width=True):
+            if add_key not in shortcuts:
+                shortcuts.append(add_key)
+                st.session_state["selleros_shortcuts"] = shortcuts
+                st.toast("추가 완료")
+            else:
+                st.toast("이미 추가된 항목입니다")
+    with a3:
+        if st.button("기본값", use_container_width=True):
+            st.session_state["selleros_shortcuts"] = ["detail", "thumb", "gif", "blog"]
+            st.toast("기본 구성으로 복원")
+
+    st.write("")
+
+    if not shortcuts:
+        st.info("아직 바로가기가 없습니다. 위에서 생성기를 추가해보세요.")
+    else:
+        cols = st.columns(2)
+        for i, key in enumerate(shortcuts):
+            meta = PAGE_BY_KEY.get(key, {"title": key, "subtitle": ""})
+            col = cols[i % 2]
+            with col:
+                st.markdown(
+                    f"""
+<div class="misharp-card" style="margin-bottom: 14px;">
+  <div class="misharp-h" style="margin-bottom: 6px;">{meta['title']}</div>
+  <div class="misharp-muted" style="margin-bottom: 12px; font-size: 13px;">{meta['subtitle']}</div>
+</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
+                with b1:
+                    if st.button("열기", key=f"open_{key}_{i}", use_container_width=True):
+                        _goto(key)
+                with b2:
+                    if st.button("▲", key=f"up_{key}_{i}", use_container_width=True, disabled=(i == 0)):
+                        shortcuts[i - 1], shortcuts[i] = shortcuts[i], shortcuts[i - 1]
+                        st.session_state["selleros_shortcuts"] = shortcuts
+                        st.rerun()
+                with b3:
+                    if st.button("▼", key=f"down_{key}_{i}", use_container_width=True, disabled=(i == len(shortcuts) - 1)):
+                        shortcuts[i + 1], shortcuts[i] = shortcuts[i], shortcuts[i + 1]
+                        st.session_state["selleros_shortcuts"] = shortcuts
+                        st.rerun()
+                with b4:
+                    if st.button("삭제", key=f"del_{key}_{i}", use_container_width=True):
+                        shortcuts.pop(i)
+                        st.session_state["selleros_shortcuts"] = shortcuts
+                        st.rerun()
+
+    st.write("")
+    st.markdown("---")
+
+    ie1, ie2 = st.columns(2)
+    with ie1:
+        payload = json.dumps({"shortcuts": st.session_state.get("selleros_shortcuts", [])}, ensure_ascii=False, indent=2)
+        st.download_button(
+            "바로가기 JSON 다운로드",
+            data=payload.encode("utf-8"),
+            file_name="misharp_selleros_shortcuts.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with ie2:
+        up = st.file_uploader("바로가기 JSON 업로드", type=["json"], label_visibility="collapsed")
+        if up is not None:
+            try:
+                data = json.loads(up.read().decode("utf-8"))
+                items = data.get("shortcuts", [])
+                valid = [k for (_, k, _) in PAGES]
+                items = [x for x in items if x in valid]
+                st.session_state["selleros_shortcuts"] = items
+                st.success("업로드 완료")
+            except Exception:
+                st.error("JSON 형식이 올바르지 않습니다.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_detail() -> None:
+    detail_page.render({})
+
+
+def render_thumb() -> None:
+    thumbnail.render({})
+
+
+def render_gif() -> None:
+    gif_maker.render({})
+
+
+def render_blog() -> None:
+    blog.render({})
+
+
+def render_copy() -> None:
+    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
+    st.markdown('<div class="misharp-h">원고 생성 (준비중)</div>', unsafe_allow_html=True)
+    st.info("다음 단계에서 ‘원고 생성기’ 모듈을 붙이겠습니다. (현재는 UI/구조만 정리)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_shortform() -> None:
+    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
+    st.markdown('<div class="misharp-h">숏폼 메이커 (준비중)</div>', unsafe_allow_html=True)
+    st.info("다음 단계에서 ‘숏폼 메이커’ 모듈을 붙이겠습니다. (현재는 UI/구조만 정리)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_collector() -> None:
+    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
+    st.markdown('<div class="misharp-h">이미지 수집툴</div>', unsafe_allow_html=True)
+    st.caption("기존에 만들어둔 이미지 수집/크롭 툴을 이 화면에서 바로 열어 사용합니다.")
+
+    st.link_button("새 탭에서 열기", COLLECTOR_URL, use_container_width=True)
+    st.write("")
+
+    components.html(
+        f"""
+<iframe src="{COLLECTOR_URL}" style="width:100%; height:820px; border:0; border-radius:16px; background:#0b1220;"></iframe>
         """,
-        unsafe_allow_html=True,
+        height=840,
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-def render_copywriter(shared):
-    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
-    st.markdown('<div class="misharp-h">원고 생성 (준비중)</div>', unsafe_allow_html=True)
-    st.info("원고 생성기는 다음 단계에서 연결합니다. (현재는 UI만 정리)")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-def render_collector(shared):
-    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
-    st.markdown('<div class="misharp-h">이미지 수집툴 (준비중)</div>', unsafe_allow_html=True)
-    st.info("상세페이지 URL에서 이미지 수집 기능은 다음 단계에서 연결합니다. (현재는 UI만 정리)")
-    st.markdown('</div>', unsafe_allow_html=True)
+RENDERERS = {
+    "dashboard": render_dashboard,
+    "detail": render_detail,
+    "copy": render_copy,
+    "thumb": render_thumb,
+    "gif": render_gif,
+    "collector": render_collector,
+    "blog": render_blog,
+    "shortform": render_shortform,
+}
 
-def render_shortform(shared):
-    st.markdown('<div class="misharp-card">', unsafe_allow_html=True)
-    st.markdown('<div class="misharp-h">숏폼 메이커 (준비중)</div>', unsafe_allow_html=True)
-    st.info("숏폼 문구/콘티 생성은 다음 단계에서 연결합니다. (현재는 UI만 정리)")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-def sidebar_nav():
-    st.sidebar.markdown("## MISHARP SELLER OS")
-    labels = [x[0] for x in MENU]
-    keys = [x[1] for x in MENU]
-    default_label = labels[0]
-    choice = st.sidebar.radio("생성기 메뉴", labels, index=0)
+def sidebar_nav() -> str:
+    st.sidebar.markdown(
+        f'<a class="misharp-brand" href="?page=dashboard">{APP_BRAND}</a>',
+        unsafe_allow_html=True,
+    )
+    st.sidebar.caption("클릭하면 인덱스(대시보드)로 이동")
+
+    labels = [x[0] for x in PAGES]
+    keys = [x[1] for x in PAGES]
+
+    qp_page = _get_query_page()
+    if qp_page in keys:
+        st.session_state["page"] = qp_page
+
+    current = st.session_state.get("page", "dashboard")
+    index = keys.index(current) if current in keys else 0
+
+    choice = st.sidebar.radio("생성기", labels, index=index)
     page_key = keys[labels.index(choice)]
 
-    with st.sidebar.expander("프로젝트 정보 (선택 입력)", expanded=False):
-        inp = st.session_state["selleros_inputs"]
-        inp["상품명"] = st.text_input("상품명", inp.get("상품명",""))
-        inp["가격"] = st.text_input("가격", inp.get("가격",""))
-        inp["소재"] = st.text_input("소재", inp.get("소재",""))
-        inp["핏"] = st.text_input("핏", inp.get("핏",""))
-        inp["사이즈"] = st.text_input("사이즈", inp.get("사이즈",""))
-        inp["컬러"] = st.text_input("컬러", inp.get("컬러",""))
-        inp["키워드"] = st.text_input("키워드(쉼표구분)", inp.get("키워드",""))
-        inp["금칙어"] = st.text_input("금칙어(쉼표구분)", inp.get("금칙어",""))
-        inp["상품URL"] = st.text_input("상품 URL(선택)", inp.get("상품URL",""))
-        st.caption("※ 공통 입력은 **선택**입니다. 입력하지 않아도 각 생성기를 사용할 수 있어요.")
+    if page_key != st.session_state.get("page"):
+        st.session_state["page"] = page_key
+        _set_query_page(page_key)
 
-        if st.button("입력 초기화", use_container_width=True):
-            st.session_state["selleros_inputs"] = {
-                "상품명": "", "가격": "", "소재": "", "핏": "", "사이즈": "", "컬러": "",
-                "키워드": "", "금칙어": "", "상품URL": "", "특장점5줄": ["","","","",""],
-            }
-            st.toast("초기화 완료")
-
+    st.sidebar.markdown("---")
+    st.sidebar.caption("※ 공통 입력폼은 제거했습니다. 각 생성기는 독립적으로 빠르게 개발합니다.")
     return page_key
 
-def main():
-    st.set_page_config(page_title=APP_TITLE, page_icon="🧩", layout="wide")
+
+def render_footer() -> None:
+    st.markdown(
+        """
+<div style="margin-top:24px; opacity:0.7; font-size:12px;">
+  © 2026 misharpcompany. All rights reserved.
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def main() -> None:
+    st.set_page_config(page_title=APP_TITLE_DEFAULT, page_icon="🧩", layout="wide")
     _init_state()
     inject_css()
 
     page_key = sidebar_nav()
+    meta = PAGE_BY_KEY.get(page_key, {"title": APP_TITLE_DEFAULT, "subtitle": ""})
+    render_hero(meta.get("title", APP_TITLE_DEFAULT), meta.get("subtitle", ""))
 
-    # main header
-    render_hero()
     st.write("")
     render_top_actions()
     st.write("")
 
-    shared = {
-        "inputs": st.session_state.get("selleros_inputs", {}),
-        "outputs": {},
-    }
-
-    # page switch
-    if page_key == "dashboard":
-        render_dashboard(shared)
-    elif page_key == "detail":
-        detail_page.render(shared)
-    elif page_key == "thumb":
-        thumbnail.render(shared)
-    elif page_key == "gif":
-        gif_maker.render(shared)
-    elif page_key == "blog":
-        blog.render(shared)
-    elif page_key == "copy":
-        render_copywriter(shared)
-    elif page_key == "collector":
-        render_collector(shared)
-    elif page_key == "shortform":
-        render_shortform(shared)
+    renderer = RENDERERS.get(page_key)
+    if renderer:
+        renderer()
     else:
-        render_dashboard(shared)
+        st.warning("해당 메뉴는 아직 준비 중입니다.")
 
-    st.markdown(
-        """
-<div class="misharp-footer">
-  © 2026 misharpcompany. All rights reserved. &nbsp; | &nbsp;
-  본 프로그램은 미샵컴퍼니 내부 직원 전용으로, 외부 유출 및 제3자 제공을 금합니다.
-</div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_footer()
+
 
 if __name__ == "__main__":
     main()
