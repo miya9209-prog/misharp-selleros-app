@@ -1,5 +1,5 @@
 
-import os, json, io, runpy, datetime, uuid
+import os, json, io, datetime, uuid
 import streamlit as st
 
 APP_TITLE = "미샵 셀러 스튜디오 OS V1"
@@ -119,9 +119,9 @@ def header(title: str, subtitle: str):
 
 def run_embedded_app(app_key: str):
     """Load an embedded tool from apps/<app_key>/app.py.
-    If it exposes render(), call it. Otherwise, run the file with runpy.
+    If it exposes render(), call it. Otherwise, assume it renders on import.
     """
-    import importlib.util, runpy
+    import importlib.util
     base = os.path.join(os.path.dirname(__file__), "apps", app_key)
     target = os.path.join(base, "app.py")
     if not os.path.exists(target):
@@ -135,7 +135,7 @@ def run_embedded_app(app_key: str):
         if hasattr(module, "render") and callable(getattr(module, "render")):
             module.render()
         else:
-            runpy.run_path(target, run_name="__main__")
+            # This tool does not expose render(); assume it renders at import time.
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
@@ -172,7 +172,7 @@ def dashboard():
     import uuid
     from datetime import datetime
 
-    st.markdown('<div class="ms-title-card"><div class="ms-title">대시보드</div><div class="ms-sub">오늘 해야 할 일과 바로가기를 한 화면에서 관리하세요.</div></div>', unsafe_allow_html=True)
+    # page_header() handles the title/subtitle
 
     # --- state init ---
     if "dash_shortcuts" not in st.session_state:
@@ -221,7 +221,7 @@ def dashboard():
         with add_cols[0]:
             new_todo = st.text_input("할일 추가", "", placeholder="예) 상세페이지 3개 생성", label_visibility="collapsed")
         with add_cols[1]:
-            add_clicked = st.button("추가", use_container_width=True)
+            add_clicked = st.button("추가", key="todo_add", use_container_width=True)
 
         if add_clicked and new_todo.strip():
             st.session_state.dash_todos.append(
@@ -274,7 +274,7 @@ def dashboard():
         emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
         title = a2.text_input("제목", "", key="sc_add_title")
         url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
-        if a4.button("추가", use_container_width=True):
+        if a4.button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
             elif not _valid_url(url):
