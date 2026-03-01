@@ -10,10 +10,9 @@ PAGES = [
     ("썸네일 생성", "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.", "thumbnail"),
     ("GIF 생성", "이미지/영상으로 상품 GIF를 빠르게 생성합니다.", "gif"),
     ("블로그 작성", "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "blog"),
-    ("이미지 수집툴", "상품 이미지 크롭/추출을 도와주는 도구입니다.", "imagecrop"),
+    ("이미지 수집툴", "상품 이미지 크롭/추출을 도와주는 도구입니다.", "image_crop"),
 ]
 
-IMAGE_CROP_URL = "https://misharp-image-crop-v1.streamlit.app/"
 
 # -----------------------------
 # Page config (only once)
@@ -24,66 +23,76 @@ st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="e
 # Global CSS (top padding fix + sidebar brand)
 # -----------------------------
 st.markdown("""
-<style>
-/* Fix top clipping */
-div.block-container { padding-top: 3.4rem; padding-bottom: 3rem; }
 
-/* Sidebar brand button style */
-.sidebar-brand {
-  display: block;
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: 0.5px;
-  margin: 0.15rem 0 0.8rem 0;
-  padding: 0.35rem 0.5rem;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #111; text-transform: uppercase;
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+
+html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stSelectbox, .stTextArea, .stButton, .stDownloadButton {
+  font-family: 'Nanum Gothic', sans-serif !important;
+}
+
+/* Fix top clipping / spacing */
+div.block-container { padding-top: 2.2rem; padding-bottom: 3rem; max-width: 1200px; }
+
+/* Subtle dark cards */
+.ms-card {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 18px 18px;
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(6px);
+}
+.ms-card + .ms-card { margin-top: 14px; }
+
+.ms-header {
+  border-radius: 18px;
+  padding: 18px 18px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+}
+.ms-title { font-size: 30px; font-weight: 800; margin: 0; color: rgba(255,255,255,0.92); }
+.ms-sub { font-size: 13px; margin: 8px 0 0 0; color: rgba(255,255,255,0.70); line-height: 1.5; }
+
+/* Sidebar brand */
+a.ms-brand{
+  display:block;
+  font-weight:800;
+  font-size: 24px;
+  letter-spacing: 0.6px;
+  margin: 0.2rem 0 1rem 0;
+  padding: 0.35rem 0.45rem;
+  border-radius: 12px;
+  color: rgba(255,255,255,0.92);
   text-decoration: none;
 }
-.sidebar-brand:hover { background: rgba(0,0,0,0.06); }
-
-/* Page header card */
-.page-header {
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 16px;
-  padding: 18px 18px;
-  margin-bottom: 16px;
-  background: #fff;
+a.ms-brand:hover{
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.95);
 }
-.page-title { font-size: 26px; font-weight: 800; margin: 0; color: #111; }
-.page-sub { font-size: 13px; margin: 6px 0 0 0; color: rgba(0,0,0,0.65); }
-
-
-/* Shortcut tiles */
-.tile{
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 16px;
-  padding: 12px 12px;
-  margin-bottom: 12px;
-  background: #fff;
-}
-.t-title{ font-weight: 700; font-size: 14px; margin-bottom: 6px; color:#111; }
-.t-url{ font-size: 12px; color: rgba(0,0,0,0.55); word-break: break-all; margin-bottom: 10px; }
-
-/* Dashboard cards */
-.card {
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 16px;
-  padding: 14px 14px;
-  background: #fff;
-}
-.small-muted { color: rgba(0,0,0,0.6); font-size: 12px; }
 
 /* Sidebar radio spacing */
-section[data-testid="stSidebar"] div[role="radiogroup"] > label { 
-  padding: 6px 8px; border-radius: 10px;
+section[data-testid="stSidebar"] .stRadio > div { gap: 6px; }
+section[data-testid="stSidebar"] label { font-size: 15px; }
+
+/* Buttons */
+.stButton>button, .stDownloadButton>button {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.92) !important;
 }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { 
-  background: rgba(0,0,0,0.05);
+.stButton>button:hover, .stDownloadButton>button:hover {
+  background: rgba(255,255,255,0.10) !important;
+  border-color: rgba(255,255,255,0.22) !important;
 }
 
+/* Inputs */
+.stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] > div {
+  border-radius: 12px !important;
+}
 </style>
+
 """, unsafe_allow_html=True)
 
 # -----------------------------
@@ -98,38 +107,44 @@ def get_page():
 def header(title: str, subtitle: str):
     st.markdown(
         f"""
-        <div class="page-header">
-          <div class="page-title">{title}</div>
-          <div class="page-sub">{subtitle}</div>
+        <div class="ms-header">
+          <div class="ms-title">{title}</div>
+          <div class="ms-sub">{subtitle}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-def run_embedded_app(app_dir: str):
-    import sys
-    """Run an embedded Streamlit app (app.py) under apps/<app_dir>/app.py."""
-    base = os.path.join(os.path.dirname(__file__), "apps", app_dir)
+
+def run_embedded_app(app_key: str):
+    """Load an embedded tool from apps/<app_key>/app.py.
+    If it exposes render(), call it. Otherwise, run the file with runpy.
+    """
+    import importlib.util, runpy
+    base = os.path.join(os.path.dirname(__file__), "apps", app_key)
     target = os.path.join(base, "app.py")
     if not os.path.exists(target):
         st.error(f"앱 파일을 찾을 수 없습니다: {target}")
         return
-    cwd = os.getcwd()
     try:
-        os.chdir(base)
-        if base not in sys.path:
-            sys.path.insert(0, base)
-        # Run in isolated globals; Streamlit will render as it executes
-        runpy.run_path(target, run_name="__main__")
-    finally:
-        os.chdir(cwd)
+        spec = importlib.util.spec_from_file_location(f"apps.{app_key}", target)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        if hasattr(module, "render") and callable(getattr(module, "render")):
+            module.render()
+        else:
+            runpy.run_path(target, run_name="__main__")
+    except Exception as e:
+        st.error(f"앱 실행 중 오류: {e}")
 
 # -----------------------------
+
 # Sidebar Navigation
 # -----------------------------
 with st.sidebar:
     # Brand: click to dashboard
-    st.markdown(f'<a class="sidebar-brand" href="?page=dashboard">MISHARP SELLER OS</a>', unsafe_allow_html=True)
+    st.markdown("""<a class='ms-brand' href='https://misharp-selleros.com'>MISHARP SELLER OS</a>""", unsafe_allow_html=True)
 
     # Sync query param -> session_state
     qp = st.query_params
@@ -175,7 +190,7 @@ def dashboard():
     top1, top2, top3 = st.columns([1.1, 1.0, 1.1], gap="large")
 
     with top1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.subheader("오늘", anchor=False)
         st.write(now.strftime("%Y-%m-%d (%a)"))
         st.write(now.strftime("%H:%M"))
@@ -183,7 +198,7 @@ def dashboard():
         st.markdown("</div>", unsafe_allow_html=True)
 
     with top2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.subheader("오늘의 메모", anchor=False)
         st.session_state["memo_text"] = st.text_area(
             "메모",
@@ -194,45 +209,13 @@ def dashboard():
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with top3:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("대시보드 백업/복원", anchor=False)
-
-        data = {
-            "shortcuts": st.session_state["shortcuts"],
-            "todo_items": st.session_state["todo_items"],
-            "memo_text": st.session_state["memo_text"],
-        }
-
-        st.download_button(
-            "현재 대시보드 JSON 다운로드",
-            data=json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"),
-            file_name="misharp_dashboard.json",
-            mime="application/json",
-            use_container_width=True,
-        )
-
-        up = st.file_uploader("JSON 업로드(복원)", type=["json"], label_visibility="collapsed")
-        if up is not None:
-            try:
-                loaded = json.loads(up.read().decode("utf-8"))
-                st.session_state["shortcuts"] = loaded.get("shortcuts", [])
-                st.session_state["todo_items"] = loaded.get("todo_items", [])
-                st.session_state["memo_text"] = loaded.get("memo_text", "")
-                st.success("복원 완료! (페이지가 새로고침됩니다)")
-                st.rerun()
-            except Exception as e:
-                st.error(f"복원 실패: {e}")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
     st.write("")
 
     left, right = st.columns([1.35, 1.0], gap="large")
 
     # ---- Left: shortcuts ----
     with left:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.subheader("바로가기", anchor=False)
 
         with st.expander("➕ 바로가기 추가", expanded=True):
@@ -300,7 +283,7 @@ def dashboard():
 
     # ---- Right: todo ----
     with right:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.subheader("오늘의 할 일", anchor=False)
 
         with st.form("todo_add", clear_on_submit=True):
@@ -338,25 +321,29 @@ def dashboard():
 # -----------------------------
 # Pages
 # -----------------------------
+# -------------------
 page = get_page()
 
+page_meta = {
+    "dashboard": ("대시보드", "오늘 날짜/메모/바로가기로 나만의 작업 대시보드를 구성해보세요."),
+    "detailpage": ("상세페이지 생성", "상품 이미지로 상세페이지를 자동 구성하고 결과물을 저장합니다."),
+    "thumbnail": ("썸네일 생성", "상세페이지/피드용 썸네일을 빠르게 생성합니다."),
+    "gif": ("GIF 생성", "상품 이미지를 GIF로 만들어 SNS/상세페이지에 활용합니다."),
+    "blog": ("블로그 작성", "상품/이벤트용 블로그 원고 초안을 빠르게 생성합니다."),
+    "image_crop": ("이미지 수집툴", "이미지 크롭/추출 등 이미지 준비 작업을 빠르게 처리합니다."),
+}
+
 if page == "dashboard":
+    header(*page_meta["dashboard"])
     dashboard()
-elif page == "detailpage":
-    header("상세페이지 생성", "이미지 업로드만 하면 상세페이지가 자동으로 완성됩니다.")
-    run_embedded_app("detailpage")
-elif page == "thumbnail":
-    header("썸네일 생성", "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.")
-    run_embedded_app("thumbnail")
-elif page == "gif":
-    header("GIF 생성", "이미지/영상으로 상품 GIF를 빠르게 생성합니다.")
-    run_embedded_app("gif")
-elif page == "blog":
-    header("블로그 작성", "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.")
-    run_embedded_app("blog")
-elif page == "imagecrop":
-    header("이미지 수집툴", "이미지 크롭/추출 도구를 OS 안에 탑재했습니다.")
-    # Embed inside OS (iframe). 일부 브라우저/정책에서 차단될 수 있습니다.
-    st.components.v1.iframe(IMAGE_CROP_URL, height=980, scrolling=True)
+
+elif page in page_meta:
+    header(*page_meta[page])
+    if page == "image_crop":
+        run_embedded_app("image_crop")
+    else:
+        run_embedded_app(page)
+
 else:
-    st.error("페이지를 찾을 수 없습니다.")
+    header("미샵 셀러 스튜디오 OS v1", "온라인 셀러를 위한 원스톱 콘텐츠 자동 생성 도구")
+    st.info("페이지를 찾을 수 없습니다. 좌측 메뉴에서 다시 선택해주세요.")
