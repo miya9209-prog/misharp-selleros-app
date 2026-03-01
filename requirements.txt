@@ -1,8 +1,1 @@
-streamlit
-Pillow
-numpy
-requests
-beautifulsoup4
-opencv-python-headless
-imageio
-imageio-ffmpeg
+streamlit>=1.32
