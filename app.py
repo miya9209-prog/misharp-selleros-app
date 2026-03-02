@@ -216,25 +216,29 @@ with st.sidebar:
     st.sidebar.markdown(
         """
         <style>
-        .mso-brand a{color:#EDEDED;text-decoration:none;font-weight:800;font-size:18px;letter-spacing:0.4px;}
-        .mso-brand a:hover{opacity:0.9;text-decoration:underline;}
+        .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
+        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
+        .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
         .mso-nav{margin-top:10px;}
-        .mso-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:10px;color:#EDEDED;text-decoration:none;font-size:15px;}
-        .mso-item:hover{background:rgba(255,255,255,0.06);}
-        .mso-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.18);flex:0 0 9px;}
-        .mso-item.active{background:rgba(255,255,255,0.08);}
-        .mso-item.active .mso-dot{background:#ff4d4f;}
-        .mso-pro{margin-left:auto;font-size:10px;font-weight:800;background:#ff4d4f;color:white;padding:2px 6px;border-radius:4px;line-height:1;}
-        .mso-auth{margin-top:14px;padding:10px;border:1px solid rgba(255,255,255,0.10);border-radius:12px;background:rgba(0,0,0,0.25);}
-        .mso-auth-title{font-weight:800;margin-bottom:6px;}
+        .mso-badge{display:inline-block;font-size:10px;font-weight:900;color:white;padding:2px 6px;border-radius:4px;line-height:1;}
+        .mso-badge.pro{background:#ff4d4f;}
+        .mso-badge.free{background:#2ecc71;}
+        .mso-navbtn button{background:transparent !important;border:1px solid rgba(255,255,255,0.08) !important;}
+        .mso-navbtn button:hover{border-color:rgba(255,255,255,0.16) !important;background:rgba(255,255,255,0.05) !important;}
+        .mso-navbtn-active button{background:rgba(255,255,255,0.08) !important;border-color:rgba(255,255,255,0.16) !important;}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    st.sidebar.markdown('<div class="mso-brand"><a href="?page=dashboard">MISHARP SELLER OS</a></div>', unsafe_allow_html=True)
+    # Brand (go home without opening a new tab / new session)
+    st.sidebar.markdown('<div class="mso-brand-btn">', unsafe_allow_html=True)
+    if st.sidebar.button('MISHARP SELLER OS', key='brand_home', use_container_width=True):
+        st.session_state['page'] = 'dashboard'
+        st.rerun()
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-    st.sidebar.markdown('<div class="mso-auth"><div class="mso-auth-title">PRO 잠금 해제</div></div>', unsafe_allow_html=True)
+    # PRO login (no extra box)
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
         if st.sidebar.button('로그아웃', key='pro_logout', use_container_width=True):
@@ -242,28 +246,36 @@ with st.sidebar:
             st.toast('로그아웃 되었습니다.')
             st.rerun()
     else:
-        code = st.sidebar.text_input('로그인 코드', type='password', key='pro_code_input')
+        code = st.sidebar.text_input('PRO 로그인 코드', type='password', key='pro_code_input')
         if st.sidebar.button('로그인', key='pro_login', use_container_width=True):
             import hashlib
             c = (code or '').strip()
             h = hashlib.sha256(c.encode('utf-8')).hexdigest()
             if h in VALID_CODE_HASHES:
                 st.session_state['pro_authed'] = True
-                st.sidebar.success('인증 완료')
                 st.rerun()
             else:
                 st.sidebar.error('코드가 올바르지 않습니다.')
 
     st.sidebar.markdown('---')
-    page = get_page()
-    nav_html = ['<div class="mso-nav">']
+    # Navigation as buttons (keeps same tab + keeps session login)
+    if 'page' not in st.session_state:
+        st.session_state['page'] = get_page()
     for p in PAGES:
         pid = p['id']
-        active = ' active' if pid == page else ''
-        badge = '<span class="mso-pro">PRO</span>' if p.get('pro', False) else ''
-        nav_html.append(f'<a class="mso-item{active}" href="?page={pid}"><span class="mso-dot"></span><span>{p["label"]}</span>{badge}</a>')
-    nav_html.append('</div>')
-    st.sidebar.markdown('\n'.join(nav_html), unsafe_allow_html=True)
+        is_active = (pid == st.session_state['page'])
+        badge = '<span class="mso-badge pro">PRO</span>' if p.get('pro', False) else '<span class="mso-badge free">FREE</span>'
+
+        c1, c2 = st.sidebar.columns([0.78, 0.22], gap='small')
+        with c1:
+            wrap_cls = 'mso-navbtn-active' if is_active else 'mso-navbtn'
+            st.markdown(f'<div class="{wrap_cls}">', unsafe_allow_html=True)
+            if st.button(p['label'], key=f'nav_{pid}', use_container_width=True, disabled=is_active):
+                st.session_state['page'] = pid
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown(badge, unsafe_allow_html=True)
 # -----------------------------
 # Dashboard (personal)
 # -----------------------------
@@ -404,7 +416,8 @@ def dashboard():
     st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
-page = get_page()
+page = st.session_state.get('page') or get_page()
+st.session_state['page'] = page
 
 # Header (title + one-line description)
 title, subtitle = PAGE_META.get(page, ('', ''))
@@ -418,15 +431,15 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
-    run_embedded_app('apps/detailpage/app.py')
+    run_embedded_app('detailpage')
 elif page == 'thumbnail':
-    run_embedded_app('apps/thumbnail/app.py')
+    run_embedded_app('thumbnail')
 elif page == 'gif':
-    run_embedded_app('apps/gif/app.py')
+    run_embedded_app('gif')
 elif page == 'blog':
-    run_embedded_app('apps/blog/app.py')
+    run_embedded_app('blog')
 elif page == 'image_crop':
-    run_embedded_app('apps/image_crop/app.py')
+    run_embedded_app('image_crop')
 elif page == 'copy':
     st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
 elif page == 'shortform':
