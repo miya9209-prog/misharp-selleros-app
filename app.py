@@ -5,13 +5,72 @@ import streamlit as st
 APP_TITLE = "미샵 셀러 스튜디오 OS V1"
 
 PAGES = [
-    ("대시보드", "업무 바로가기·할 일·메모를 한 화면에서 관리하세요.", "dashboard"),
-    ("상세페이지 생성", "이미지 업로드만 하면 상세페이지가 자동으로 완성됩니다.", "detailpage"),
-    ("썸네일 생성", "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.", "thumbnail"),
-    ("GIF 생성", "이미지/영상으로 상품 GIF를 빠르게 생성합니다.", "gif"),
-    ("블로그 작성", "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "blog"),
-    ("이미지 수집툴", "상품 이미지 크롭/추출을 도와주는 도구입니다.", "image_crop"),
+    {"id": "dashboard", "label": "대시보드", "subtitle": "오늘 날짜/메모/할 일/바로가기를 한 화면에서 관리하세요.", "pro": False},
+    {"id": "detailpage", "label": "상세페이지 생성", "subtitle": "이미지 업로드만 하면 상세페이지가 자동으로 완성됩니다.", "pro": False},
+    {"id": "thumbnail", "label": "썸네일 생성", "subtitle": "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.", "pro": True},
+    {"id": "gif", "label": "GIF 생성", "subtitle": "이미지/영상으로 상품 GIF를 빠르게 생성합니다.", "pro": True},
+    {"id": "blog", "label": "블로그 작성", "subtitle": "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
+    {"id": "image_crop", "label": "이미지 추출 생성", "subtitle": "상품 이미지 크롭/추출 도구를 OS 안에 탑재했습니다.", "pro": True},
+    {"id": "copy", "label": "상품설명 생성", "subtitle": "상품 특장점 기반으로 상세설명 문구를 자동 생성합니다.", "pro": True},
+    {"id": "shortform", "label": "숏폼 메이커", "subtitle": "릴스/숏츠용 후킹 스크립트·구성안을 빠르게 만듭니다.", "pro": True},
 ]
+
+# PRO access codes (sha256 of the plain code).
+VALID_CODE_HASHES = set([
+    "02d59a23b827a146863fc956de2df1c891a616db7354b2359b6e0884953f2ab8",
+    "0da36dbe23c8b8c695e1d318a3f9c46ae4ecd3c6d56ad8ef7d496d12ad06ca70",
+    "14702adfcc03b5e377a280fa5ede65b53e668486e7456c3bd11d158dd64d9de2",
+    "1c393314836c484e74ca7ba936cbe740ecc165bfd43ef022f227b8e330070b56",
+    "25d5cc90e0823b13eacc2876fd6c3aa64de42332c0e95af62dacf9b715f0c26d",
+    "26ed366b4c6eec70dbdaae69123bdc766341f0be3721c2ec3db0c10d1f00dccc",
+    "2ed472bbe6847e106d87b107525d63f7379eaf712a6a9824d41a933593f6170e",
+    "302778bfb024ef2e177d90bfcf523a1f53005b6ab477034dec4147c63d1d8c25",
+    "33a9d3295bb34dff13bfd794da0b58c82d1dfa2adf41dfab918a40a4defbeb47",
+    "3a36ff44ce8c7d1d98ebf28eadf109e8bc2b7e6a9e8d57dfdf48e4d74e855b43",
+    "41e9bcf536ec0508ae321d1c51574122a938738a03ca754b402b29c50e8f66d4",
+    "4750a0850e85769bf82fb113ec703b3bfb63639a038d332a994b7a37d6357488",
+    "498494d17098d27a409ec2683e5504c191acc786b7d8a5fe3c77e4b698c9d189",
+    "4a15a7e737f5b7736b6bb70c86f5b233e6c8774a9db4ca8046cb5f3b98935378",
+    "4e34f0246fb251a0f71941a1f4b392dc8417661733a191c66d87b12c3ef5ca0e",
+    "4e4686617e9cced252fa8b3a0efd128bd327075a4dfd1770710f12dc19206f0a",
+    "510460d1a1b6be232af5133937e47e955ac8450f5848de0b616215783fa3331f",
+    "602eef75d17ec0b696401b2600f6f53baddaccd18505a0f6ce78f785533c08be",
+    "607cbe3b4ccc9594a188b7d9d16dc4738abcded3774a7cc0ed741366c0a0ad47",
+    "633bab2837d341a0215f964e4a09af0329dea7f1d4ce8a33e0d52aeab29cbd11",
+    "67439ad3e73e99e59637872eb7da529052b79d641cd4a052293e649f4e7eee78",
+    "742e0c172d73c4afdc052027b752d74b6c49a2806c23ee126c1993c4ce148cd6",
+    "748fce000ce903e5541f25030e4869fb9c1e47e39f9e226a54986a12f8da2946",
+    "787d09b23c3e20b2b7d617babf4be728dbc8c072c28b9162c0d9d3647b209e12",
+    "7987bbcfe7cdc28d3391e2b31196eb1718d49671140bef1eb5ef39e9b2373182",
+    "7cf5fc0bd51c4edd7e33a1b8e79ef1cad18f99e063bd0b6fee89c572842409a0",
+    "8224cc53bc2a20587376d654ec2bdd09e458fb7751e8651fadc0cbb9045dd7c8",
+    "879b460c71ad3407b5da08f93a76f2a66c44db9b621fc01578f27d6ea7b69f7e",
+    "8e6d5056763ab2b10748b6bcb9d95a19dea425f761c2278e6934b06d11fd663b",
+    "9113272e480dec5f0ecee89f6bef5ca8248dd2ec54ae92288b9a925699e0cee1",
+    "934f46f787fbcbc6b25f69fd1b5f367bdd778b4528f1dc0b3634ec130f82ed4e",
+    "9770cd0d39c44a2daa7609dac0aa1d398db19db4a7779271f4f390f64985a9f6",
+    "9b4e1c08e888d9a6681428913201d8f8e0596a307929345fb3ed1104048f82f8",
+    "a7821b6889e797b7419c7ecd4a73be2ceb510bc5c4ba051aa8fd9b70731231db",
+    "a7f1e6755a99dd413eda944ce93b88e06ffcdc11620d479412bae53c909b5fda",
+    "b869513d194c3b72522294e8043744f100c2fc5800a535b70fe57647bf988182",
+    "cf3f334249240966d67b3197938b04211660fb7b08b3b4b2193fc40ed544511e",
+    "d2ed7e7500f69140b83e0c46a6183370dce13c9512ba0e942214428d3224a689",
+    "d6ca4e044c957440a62e17fb3a16522e699dafaaf8c147d9dca83e66130ad51c",
+    "dd1f82df77258d73134f67f3e5b09f5fab3a0a90257152fc58f8dca1e8ce42a0",
+    "ddca47d1b026d84dce815f703ba11615dc5d7a37c661bf5c20c5944728b17e25",
+    "ddcf07183a44b6608e4c384453137f941e8c514ad1cdf9f85a27c6dc5e77e761",
+    "deaf76e2e3fa015966faae337543198f9b3c900020e97bdcf914562eb7670432",
+    "e06807c54da24e54ad757f3609d8d1125130cf8ded55bd64df884706fc52833b",
+    "e1ee1fcddce542ebdc5f98dec194bc6fd49c861301355f48a3c1d94c5e66d0b9",
+    "e5f43cf77c594c4b490b40f139c465b2357278c5ee28d16f88e1ad07d5b40652",
+    "f474b2d8627c66b3944a3ef91c619a0a0ab62c6f8a0c5c483fbfb22add3b9846",
+    "f4b0ae6b12a0f82ea0642b963bd92dcdc84f667bfa257e76bd61dfa67052ddac",
+    "f8a60e4f233cd032b7d1ec3fe3794471a10adfadf8e027767f0ed436d1b71e91",
+    "fef725c3aca9d9c2d7cf75464b5efcb94fc3f2d05c0f4ee13a8592be04a13a87",
+])
+
+PRO_PAGE_IDS = {p['id'] for p in PAGES if p.get('pro')}
+PAGE_META = {p['id']: (p['label'], p.get('subtitle','')) for p in PAGES}
 
 
 # -----------------------------
@@ -103,7 +162,16 @@ def set_page(page_key: str):
     st.session_state["page"] = page_key
 
 def get_page():
-    return st.session_state.get("page", "dashboard")
+    # Prefer query param (for sidebar HTML links), fall back to session state.
+    qp = st.query_params.get('page', None)
+    if isinstance(qp, list):
+        qp = qp[0] if qp else None
+    page = (qp or st.session_state.get('page') or 'dashboard').strip()
+    valid_ids = {p['id'] for p in PAGES}
+    if page not in valid_ids:
+        page = 'dashboard'
+    st.session_state['page'] = page
+    return page
 
 def header(title: str, subtitle: str):
     st.markdown(
@@ -135,7 +203,8 @@ def run_embedded_app(app_key: str):
         if hasattr(module, "render") and callable(getattr(module, "render")):
             module.render()
         else:
-         pass   # This tool does not expose render(); assume it renders at import time.
+            # This tool does not expose render(); assume it renders at import time.
+            pass
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
@@ -144,25 +213,57 @@ def run_embedded_app(app_key: str):
 # Sidebar Navigation
 # -----------------------------
 with st.sidebar:
-    # Brand: click to dashboard
-    st.markdown("""<a class='ms-brand' href='https://misharp-selleros.com'>MISHARP SELLER OS</a>""", unsafe_allow_html=True)
+    st.sidebar.markdown(
+        """
+        <style>
+        .mso-brand a{color:#EDEDED;text-decoration:none;font-weight:800;font-size:18px;letter-spacing:0.4px;}
+        .mso-brand a:hover{opacity:0.9;text-decoration:underline;}
+        .mso-nav{margin-top:10px;}
+        .mso-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:10px;color:#EDEDED;text-decoration:none;font-size:15px;}
+        .mso-item:hover{background:rgba(255,255,255,0.06);}
+        .mso-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.18);flex:0 0 9px;}
+        .mso-item.active{background:rgba(255,255,255,0.08);}
+        .mso-item.active .mso-dot{background:#ff4d4f;}
+        .mso-pro{margin-left:auto;font-size:10px;font-weight:800;background:#ff4d4f;color:white;padding:2px 6px;border-radius:4px;line-height:1;}
+        .mso-auth{margin-top:14px;padding:10px;border:1px solid rgba(255,255,255,0.10);border-radius:12px;background:rgba(0,0,0,0.25);}
+        .mso-auth-title{font-weight:800;margin-bottom:6px;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Sync query param -> session_state
-    qp = st.query_params
-    if "page" in qp:
-        st.session_state["page"] = qp.get("page")
-    current = get_page()
+    st.sidebar.markdown('<div class="mso-brand"><a href="?page=dashboard">MISHARP SELLER OS</a></div>', unsafe_allow_html=True)
 
-    labels = [p[0] for p in PAGES]
-    keys   = [p[2] for p in PAGES]
-    idx = keys.index(current) if current in keys else 0
+    st.sidebar.markdown('<div class="mso-auth"><div class="mso-auth-title">PRO 잠금 해제</div></div>', unsafe_allow_html=True)
+    if st.session_state.get('pro_authed', False):
+        st.sidebar.success('PRO 사용 가능')
+        if st.sidebar.button('로그아웃', key='pro_logout', use_container_width=True):
+            st.session_state['pro_authed'] = False
+            st.toast('로그아웃 되었습니다.')
+            st.rerun()
+    else:
+        code = st.sidebar.text_input('로그인 코드', type='password', key='pro_code_input')
+        if st.sidebar.button('로그인', key='pro_login', use_container_width=True):
+            import hashlib
+            c = (code or '').strip()
+            h = hashlib.sha256(c.encode('utf-8')).hexdigest()
+            if h in VALID_CODE_HASHES:
+                st.session_state['pro_authed'] = True
+                st.sidebar.success('인증 완료')
+                st.rerun()
+            else:
+                st.sidebar.error('코드가 올바르지 않습니다.')
 
-    choice = st.radio("메뉴", labels, index=idx, label_visibility="collapsed")
-    page_key = keys[labels.index(choice)]
-    if page_key != current:
-        st.query_params.update({"page": page_key})
-        set_page(page_key)
-
+    st.sidebar.markdown('---')
+    page = get_page()
+    nav_html = ['<div class="mso-nav">']
+    for p in PAGES:
+        pid = p['id']
+        active = ' active' if pid == page else ''
+        badge = '<span class="mso-pro">PRO</span>' if p.get('pro', False) else ''
+        nav_html.append(f'<a class="mso-item{active}" href="?page={pid}"><span class="mso-dot"></span><span>{p["label"]}</span>{badge}</a>')
+    nav_html.append('</div>')
+    st.sidebar.markdown('\n'.join(nav_html), unsafe_allow_html=True)
 # -----------------------------
 # Dashboard (personal)
 # -----------------------------
@@ -303,30 +404,32 @@ def dashboard():
     st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
-# -----------------------------
-# -------------------
 page = get_page()
 
-page_meta = {
-    "dashboard": ("대시보드", "오늘 날짜/메모/바로가기로 나만의 작업 대시보드를 구성해보세요."),
-    "detailpage": ("상세페이지 생성", "상품 이미지로 상세페이지를 자동 구성하고 결과물을 저장합니다."),
-    "thumbnail": ("썸네일 생성", "상세페이지/피드용 썸네일을 빠르게 생성합니다."),
-    "gif": ("GIF 생성", "상품 이미지를 GIF로 만들어 SNS/상세페이지에 활용합니다."),
-    "blog": ("블로그 작성", "상품/이벤트용 블로그 원고 초안을 빠르게 생성합니다."),
-    "image_crop": ("이미지 수집툴", "이미지 크롭/추출 등 이미지 준비 작업을 빠르게 처리합니다."),
-}
+# Header (title + one-line description)
+title, subtitle = PAGE_META.get(page, ('', ''))
+header(title, subtitle)
 
-if page == "dashboard":
-    header(*page_meta["dashboard"])
+# PRO gate
+if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
+    st.warning('이 기능은 **PRO 전용**입니다. 좌측 사이드바에서 로그인 코드를 입력해 잠금 해제해 주세요.')
+    st.stop()
+
+if page == 'dashboard':
     dashboard()
-
-elif page in page_meta:
-    header(*page_meta[page])
-    if page == "image_crop":
-        run_embedded_app("image_crop")
-    else:
-        run_embedded_app(page)
-
+elif page == 'detailpage':
+    run_embedded_app(detailpage_app)
+elif page == 'thumbnail':
+    run_embedded_app(thumbnail_app)
+elif page == 'gif':
+    run_embedded_app(gif_app)
+elif page == 'blog':
+    run_embedded_app(blog_app)
+elif page == 'image_crop':
+    run_embedded_app(image_crop_app)
+elif page == 'copy':
+    st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
+elif page == 'shortform':
+    st.info('숏폼 메이커는 **다음 단계에서** 탑재합니다. (PRO 전용)')
 else:
-    header("미샵 셀러 스튜디오 OS v1", "온라인 셀러를 위한 원스톱 콘텐츠 자동 생성 도구")
-    st.info("페이지를 찾을 수 없습니다. 좌측 메뉴에서 다시 선택해주세요.")
+    st.info('준비 중인 페이지입니다.')
