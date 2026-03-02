@@ -219,13 +219,24 @@ with st.sidebar:
         .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
         .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
         .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
-        .mso-nav{margin-top:10px;}
-        .mso-badge{display:inline-block;font-size:10px;font-weight:900;color:white;padding:2px 6px;border-radius:4px;line-height:1;}
+        .mso-nav{margin-top:12px;}
+        .mso-nav a.mso-link{display:flex;align-items:center;justify-content:space-between;gap:10px;
+            padding:12px 12px;border-radius:10px;text-decoration:none;
+            border:1px solid rgba(255,255,255,0.10);
+            color:#EDEDED;background:rgba(255,255,255,0.02);
+            margin:10px 0;}
+        .mso-nav a.mso-link:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18);}
+        .mso-nav a.mso-link.active{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.20);}
+        .mso-nav .label{font-weight:800;letter-spacing:-0.2px;}
+        .mso-badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+            min-width:36px;height:18px;font-size:10px;font-weight:900;color:white;
+            padding:0 7px;border-radius:6px;line-height:1;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
-        .mso-navbtn button{background:transparent !important;border:1px solid rgba(255,255,255,0.08) !important;}
-        .mso-navbtn button:hover{border-color:rgba(255,255,255,0.16) !important;background:rgba(255,255,255,0.05) !important;}
-        .mso-navbtn-active button{background:rgba(255,255,255,0.08) !important;border-color:rgba(255,255,255,0.16) !important;}
+        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
+            padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);
+            font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
+            background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
         </style>
         """,
         unsafe_allow_html=True,
@@ -258,24 +269,37 @@ with st.sidebar:
                 st.sidebar.error('코드가 올바르지 않습니다.')
 
     st.sidebar.markdown('---')
-    # Navigation as buttons (keeps same tab + keeps session login)
+
+    # Query param routing (same tab, perfect badge alignment)
+    q = st.query_params
+    if 'page' in q and q.get('page'):
+        st.session_state['page'] = q.get('page')
     if 'page' not in st.session_state:
         st.session_state['page'] = get_page()
+
+    st.sidebar.markdown('<div class="mso-nav">', unsafe_allow_html=True)
     for p in PAGES:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
-        badge = '<span class="mso-badge pro">PRO</span>' if p.get('pro', False) else '<span class="mso-badge free">FREE</span>'
+        active_cls = 'active' if is_active else ''
+        badge_cls = 'pro' if p.get('pro', False) else 'free'
+        badge_text = 'PRO' if p.get('pro', False) else 'FREE'
+        st.sidebar.markdown(
+            f"""
+            <a class=\"mso-link {active_cls}\" href=\"?page={pid}\">
+              <span class=\"label\">{p['label']}</span>
+              <span class=\"mso-badge {badge_cls}\">{badge_text}</span>
+            </a>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-        c1, c2 = st.sidebar.columns([0.78, 0.22], gap='small')
-        with c1:
-            wrap_cls = 'mso-navbtn-active' if is_active else 'mso-navbtn'
-            st.markdown(f'<div class="{wrap_cls}">', unsafe_allow_html=True)
-            if st.button(p['label'], key=f'nav_{pid}', use_container_width=True, disabled=is_active):
-                st.session_state['page'] = pid
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(badge, unsafe_allow_html=True)
+    # Sidebar footer
+    st.sidebar.markdown(
+        '<div class="mso-sidebar-footer">© 2026 misharpcompany. All rights reserved.</div>',
+        unsafe_allow_html=True,
+    )
 # -----------------------------
 # Dashboard (personal)
 # -----------------------------
