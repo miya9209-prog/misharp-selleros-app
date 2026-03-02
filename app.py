@@ -1,6 +1,8 @@
 
 import os, json, io, datetime, uuid
 import streamlit as st
+import runpy
+from pathlib import Path
 
 APP_TITLE = "미샵 셀러 스튜디오 OS V1"
 
@@ -82,7 +84,6 @@ st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="e
 # Global CSS (top padding fix + sidebar brand)
 # -----------------------------
 st.markdown("""
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
 
@@ -152,7 +153,6 @@ section[data-testid="stSidebar"] label { font-size: 15px; }
   border-radius: 12px !important;
 }
 </style>
-
 """, unsafe_allow_html=True)
 
 # -----------------------------
@@ -418,15 +418,15 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
-    run_embedded_app(detailpage_app)
+    run_embedded_app('apps/detailpage/app.py')
 elif page == 'thumbnail':
-    run_embedded_app(thumbnail_app)
+    run_embedded_app('apps/thumbnail/app.py')
 elif page == 'gif':
-    run_embedded_app(gif_app)
+    run_embedded_app('apps/gif/app.py')
 elif page == 'blog':
-    run_embedded_app(blog_app)
+    run_embedded_app('apps/blog/app.py')
 elif page == 'image_crop':
-    run_embedded_app(image_crop_app)
+    run_embedded_app('apps/image_crop/app.py')
 elif page == 'copy':
     st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
 elif page == 'shortform':

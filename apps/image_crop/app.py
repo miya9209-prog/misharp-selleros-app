@@ -608,7 +608,7 @@ p, label, div, span { letter-spacing: -0.1px; }
 
 
 def render():
-    st.title("🧩 MISHARP 이미지 추출생성기")
+    st.title("이미지 추출 생성")
     st.caption("MISHARP IMAGE GENERATOR V1")
 
     st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
