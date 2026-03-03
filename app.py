@@ -532,9 +532,10 @@ def dashboard():
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
                 st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
-                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
+                title = sc.get('title','(제목 없음)')
+                url = sc.get('url', '')
                 # URL text hidden for cleaner cards
-                st.link_button("열기", sc.get("url", ""), use_container_width=True)
+                st.link_button(title, url, use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -542,9 +543,17 @@ def dashboard():
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
         a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
-        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
-        title = a2.text_input("제목", "", key="sc_add_title")
-        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
+
+        a1.markdown("<div class='ms-field-label'>아이콘</div>", unsafe_allow_html=True)
+        emoji = a1.text_input("", "🔗", key="sc_add_emoji", label_visibility="collapsed")
+
+        a2.markdown("<div class='ms-field-label'>제목</div>", unsafe_allow_html=True)
+        title = a2.text_input("", "", key="sc_add_title", label_visibility="collapsed")
+
+        a3.markdown("<div class='ms-field-label'>URL</div>", unsafe_allow_html=True)
+        url = a3.text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
+
+        a4.markdown("<div class='ms-field-label'>&nbsp;</div>", unsafe_allow_html=True)
         if a4.button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
@@ -589,6 +598,17 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
+    st.markdown("""<style>
+/* Detailpage embedded app readability fixes */
+section.main label, section.main p, section.main span, section.main div[data-testid="stMarkdownContainer"] p,
+section.main div[data-testid="stMarkdownContainer"] span,
+section.main div[data-testid="stMarkdownContainer"] strong,
+section.main div[data-testid="stCaptionContainer"] span {
+    color: rgba(255,255,255,0.92) !important;
+}
+section.main small { color: rgba(255,255,255,0.7) !important; }
+.ms-field-label{font-size:12px;opacity:.85;margin:0 0 6px 0;}
+</style>""", unsafe_allow_html=True)
     run_embedded_app('detailpage')
 elif page == 'thumbnail':
     run_embedded_app('thumbnail')
