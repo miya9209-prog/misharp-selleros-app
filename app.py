@@ -1,5 +1,5 @@
 
-import os, json, io, datetime, uuid
+import os, json, io, datetime, uuid, sys
 import streamlit as st
 import runpy
 from pathlib import Path
@@ -79,6 +79,35 @@ PAGE_META = {p['id']: (p['label'], p.get('subtitle','')) for p in PAGES}
 # Page config (only once)
 # -----------------------------
 st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="expanded")
+
+# ✅ Global CSS: Dark 강제 + NanumGothic + 상단 잘림 방지
+st.markdown(
+    """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+
+html, body, [class*="css"], [data-testid="stAppViewContainer"], .stApp {
+  font-family: 'Nanum Gothic', sans-serif !important;
+}
+
+[data-testid="stAppViewContainer"] {
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,0.06), rgba(0,0,0,0) 60%),
+              radial-gradient(1000px 700px at 80% 0%, rgba(0,140,255,0.10), rgba(0,0,0,0) 55%),
+              linear-gradient(180deg, #0b0f16 0%, #0a0d13 100%) !important;
+}
+
+/* Main padding: 상단 박스 잘림 방지 */
+section.main > div { padding-top: 18px !important; }
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%) !important;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 # -----------------------------
 # Global CSS (top padding fix + sidebar brand)
@@ -199,10 +228,10 @@ def run_embedded_app(app_key: str):
       to sys.path to make local imports resolve.
     """
     import importlib.util
-    import sys
 
     repo_root = os.path.dirname(__file__)
     apps_root = os.path.join(repo_root, "apps")
+    modules_root = os.path.join(repo_root, "modules")
     base = os.path.join(apps_root, app_key)
     target = os.path.join(base, "app.py")
 
@@ -210,7 +239,8 @@ def run_embedded_app(app_key: str):
         st.error(f"앱 파일을 찾을 수 없습니다: {target}")
         return
 
-    for p in (base, apps_root, repo_root):
+    old_sys_path = list(sys.path)
+    for p in (base, apps_root, modules_root, repo_root):
         if p not in sys.path:
             sys.path.insert(0, p)
 
@@ -226,6 +256,8 @@ def run_embedded_app(app_key: str):
             module.render()
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
+    finally:
+        sys.path = old_sys_path
 
 # -----------------------------
 
