@@ -268,7 +268,8 @@ with st.sidebar:
         """
         <style>
         .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
-        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
+        /* Brand: keep box size, make text ~2x */
+        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:38px !important;letter-spacing:0.4px !important;}
         .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
         /* Sidebar menu buttons (previous "card-button" vibe) */
         section[data-testid="stSidebar"] .stButton > button{
@@ -280,7 +281,10 @@ with st.sidebar:
             color:#EDEDED !important;
             font-weight:800 !important;
             letter-spacing:-0.2px;
+            text-align:left !important;
         }
+        /* left align inner layout */
+        section[data-testid="stSidebar"] .stButton > button > div{justify-content:flex-start !important;}
         section[data-testid="stSidebar"] .stButton > button:hover{
             background:rgba(255,255,255,0.06) !important;
             border-color:rgba(255,255,255,0.18) !important;
@@ -289,8 +293,8 @@ with st.sidebar:
             transform: translateY(0px);
         }
         .mso-badge{display:inline-flex;align-items:center;justify-content:center;
-            min-width:36px;height:18px;font-size:10px;font-weight:900;color:white;
-            padding:0 7px;border-radius:6px;line-height:1;margin-top:10px;}
+            min-width:34px;height:18px;font-size:9px;font-weight:700;color:white;
+            padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
         .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
@@ -346,13 +350,19 @@ with st.sidebar:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
         dot = '●' if is_active else '○'
-        c1, c2 = st.sidebar.columns([0.84, 0.16], gap='small')
+        # Give the badge more room so it stays in one line
+        c1, c2 = st.sidebar.columns([0.80, 0.20], gap='small')
         if c1.button(f"{dot} {p['label']}", key=f"nav_{pid}", use_container_width=True):
             _go(pid)
 
-        badge_cls = 'pro' if p.get('pro', False) else 'free'
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
-        c2.markdown(f"<span class='mso-badge {badge_cls}'>{badge_text}</span>", unsafe_allow_html=True)
+        badge_cls = 'mso-badge-pro' if p.get('pro', False) else 'mso-badge-free'
+        c2.markdown(
+            f"<div style='display:flex;justify-content:flex-end;'>"
+            f"<span class='mso-badge {badge_cls}'>{badge_text}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
     # Sidebar footer
     st.sidebar.markdown(
@@ -458,7 +468,7 @@ def dashboard():
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
                 st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
                 st.markdown(f"**{sc.get('title','(제목 없음)')}**")
-                st.caption(sc.get("url", ""))
+                # URL text hidden for cleaner cards
                 st.link_button("열기", sc.get("url", ""), use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
