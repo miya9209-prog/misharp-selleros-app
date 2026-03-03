@@ -186,25 +186,44 @@ def header(title: str, subtitle: str):
 
 
 def run_embedded_app(app_key: str):
-    """Load an embedded tool from apps/<app_key>/app.py.
-    If it exposes render(), call it. Otherwise, assume it renders on import.
+    """Load an embedded tool from apps/<app_key>/app.py (in-place).
+
+    Why we tweak sys.path
+    - Some embedded tools import helper modules sitting next to their app.py
+      (e.g. `import gif_utils`). When we dynamically load a module with
+      importlib, Python doesn't automatically add that folder to sys.path.
+      So we temporarily add:
+        1) repo root
+        2) /apps
+        3) /apps/<app_key>
+      to sys.path to make local imports resolve.
     """
     import importlib.util
-    base = os.path.join(os.path.dirname(__file__), "apps", app_key)
+    import sys
+
+    repo_root = os.path.dirname(__file__)
+    apps_root = os.path.join(repo_root, "apps")
+    base = os.path.join(apps_root, app_key)
     target = os.path.join(base, "app.py")
+
     if not os.path.exists(target):
         st.error(f"앱 파일을 찾을 수 없습니다: {target}")
         return
+
+    for p in (base, apps_root, repo_root):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+
     try:
-        spec = importlib.util.spec_from_file_location(f"apps.{app_key}", target)
+        # Unique module name reduces stale-cache issues on Streamlit reruns
+        nonce = st.session_state.get("nav_nonce", 0)
+        mod_name = f"mso_{app_key}_{nonce}"
+        spec = importlib.util.spec_from_file_location(mod_name, target)
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)
         if hasattr(module, "render") and callable(getattr(module, "render")):
             module.render()
-        else:
-            # This tool does not expose render(); assume it renders at import time.
-            pass
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
@@ -219,18 +238,27 @@ with st.sidebar:
         .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
         .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
         .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
-        .mso-nav{margin-top:12px;}
-        .mso-nav a.mso-link{display:flex;align-items:center;justify-content:space-between;gap:10px;
-            padding:12px 12px;border-radius:10px;text-decoration:none;
-            border:1px solid rgba(255,255,255,0.10);
-            color:#EDEDED;background:rgba(255,255,255,0.02);
-            margin:10px 0;}
-        .mso-nav a.mso-link:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18);}
-        .mso-nav a.mso-link.active{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.20);}
-        .mso-nav .label{font-weight:800;letter-spacing:-0.2px;}
-        .mso-badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+        /* Sidebar menu buttons (previous "card-button" vibe) */
+        section[data-testid="stSidebar"] .stButton > button{
+            width:100%;
+            padding:12px 12px !important;
+            border-radius:10px !important;
+            border:1px solid rgba(255,255,255,0.10) !important;
+            background:rgba(255,255,255,0.02) !important;
+            color:#EDEDED !important;
+            font-weight:800 !important;
+            letter-spacing:-0.2px;
+        }
+        section[data-testid="stSidebar"] .stButton > button:hover{
+            background:rgba(255,255,255,0.06) !important;
+            border-color:rgba(255,255,255,0.18) !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button:active{
+            transform: translateY(0px);
+        }
+        .mso-badge{display:inline-flex;align-items:center;justify-content:center;
             min-width:36px;height:18px;font-size:10px;font-weight:900;color:white;
-            padding:0 7px;border-radius:6px;line-height:1;}
+            padding:0 7px;border-radius:6px;line-height:1;margin-top:10px;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
         .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
@@ -270,30 +298,29 @@ with st.sidebar:
 
     st.sidebar.markdown('---')
 
-    # Query param routing (same tab, perfect badge alignment)
-    q = st.query_params
-    if 'page' in q and q.get('page'):
-        st.session_state['page'] = q.get('page')
+    # In-app routing (single tab) — avoids opening new sessions and keeps PRO login.
     if 'page' not in st.session_state:
         st.session_state['page'] = get_page()
+    if 'nav_nonce' not in st.session_state:
+        st.session_state['nav_nonce'] = 0
 
-    st.sidebar.markdown('<div class="mso-nav">', unsafe_allow_html=True)
+    def _go(pid: str):
+        st.session_state['page'] = pid
+        st.session_state['nav_nonce'] += 1
+        st.rerun()
+
+    # Clean alignment: button + badge in 2 columns
     for p in PAGES:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
-        active_cls = 'active' if is_active else ''
+        dot = '●' if is_active else '○'
+        c1, c2 = st.sidebar.columns([0.84, 0.16], gap='small')
+        if c1.button(f"{dot} {p['label']}", key=f"nav_{pid}", use_container_width=True):
+            _go(pid)
+
         badge_cls = 'pro' if p.get('pro', False) else 'free'
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
-        st.sidebar.markdown(
-            f"""
-            <a class=\"mso-link {active_cls}\" href=\"?page={pid}\">
-              <span class=\"label\">{p['label']}</span>
-              <span class=\"mso-badge {badge_cls}\">{badge_text}</span>
-            </a>
-            """,
-            unsafe_allow_html=True,
-        )
-    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+        c2.markdown(f"<span class='mso-badge {badge_cls}'>{badge_text}</span>", unsafe_allow_html=True)
 
     # Sidebar footer
     st.sidebar.markdown(
