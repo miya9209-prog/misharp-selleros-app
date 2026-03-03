@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 import io
 import os
+
+EMBED_DARK = os.environ.get('MISHARP_EMBED', '') == '1'
 import base64
 import hashlib
 from typing import List, Optional

@@ -249,6 +249,8 @@ def run_embedded_app(app_key: str):
         nonce = st.session_state.get("nav_nonce", 0)
         mod_name = f"mso_{app_key}_{nonce}"
         spec = importlib.util.spec_from_file_location(mod_name, target)
+        # Mark as embedded so child apps can switch CSS / behavior
+        os.environ['MISHARP_EMBED'] = '1'
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)
@@ -541,28 +543,24 @@ def dashboard():
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
-        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
+        a1, a2, a3 = st.columns([2.2, 4.6, 1.2])
 
-        a1.markdown("<div class='ms-field-label'>아이콘</div>", unsafe_allow_html=True)
-        emoji = a1.text_input("", "🔗", key="sc_add_emoji", label_visibility="collapsed")
+        a1.markdown("<div class='ms-field-label'>제목</div>", unsafe_allow_html=True)
+        title = a1.text_input("", "", key="sc_add_title", label_visibility="collapsed")
 
-        a2.markdown("<div class='ms-field-label'>제목</div>", unsafe_allow_html=True)
-        title = a2.text_input("", "", key="sc_add_title", label_visibility="collapsed")
+        a2.markdown("<div class='ms-field-label'>URL</div>", unsafe_allow_html=True)
+        url = a2.text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
 
-        a3.markdown("<div class='ms-field-label'>URL</div>", unsafe_allow_html=True)
-        url = a3.text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
-
-        a4.markdown("<div class='ms-field-label'>&nbsp;</div>", unsafe_allow_html=True)
-        # URL 입력창과 버튼이 같은 라인에 자연스럽게 맞도록 약간의 상단 여백을 추가
-        a4.markdown("<div style='height:22px;'></div>", unsafe_allow_html=True)
-        if a4.button("추가", key="shortcut_add", use_container_width=True):
+        a3.markdown("<div class='ms-field-label'>&nbsp;</div>", unsafe_allow_html=True)
+        a3.markdown("<div style='height:22px;'></div>", unsafe_allow_html=True)
+        if a3.button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
             elif not _valid_url(url):
                 st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
             else:
                 st.session_state.dash_shortcuts.append(
-                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip()}
                 )
                 st.success("추가되었습니다.")
                 st.rerun()
@@ -570,19 +568,17 @@ def dashboard():
         st.divider()
         st.markdown("**기존 바로가기 관리**")
         for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([1.2, 2.2, 4.2, 1.2])
-            # 이모지는 UI에서 노출하지 않습니다 (깔끔한 리스트 유지)
-            row[0].markdown("")
-            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
-            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
-            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+            row = st.columns([2.2, 4.6, 1.2])
+            new_title = row[0].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
+            new_url = row[1].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
+            row[2].markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+            if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
                 st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
                 st.rerun()
             # 저장(자동 반영)
             sc["title"] = new_title
             sc["url"] = new_url
-
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
 page = st.session_state.get('page') or get_page()
