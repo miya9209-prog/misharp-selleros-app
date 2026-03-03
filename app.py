@@ -1,5 +1,5 @@
 
-import os, json, io, datetime, uuid, sys
+import os, json, io, datetime, uuid
 import streamlit as st
 import runpy
 from pathlib import Path
@@ -79,35 +79,6 @@ PAGE_META = {p['id']: (p['label'], p.get('subtitle','')) for p in PAGES}
 # Page config (only once)
 # -----------------------------
 st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="expanded")
-
-# ✅ Global CSS: Dark 강제 + NanumGothic + 상단 잘림 방지
-st.markdown(
-    """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
-
-html, body, [class*="css"], [data-testid="stAppViewContainer"], .stApp {
-  font-family: 'Nanum Gothic', sans-serif !important;
-}
-
-[data-testid="stAppViewContainer"] {
-  background: radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,0.06), rgba(0,0,0,0) 60%),
-              radial-gradient(1000px 700px at 80% 0%, rgba(0,140,255,0.10), rgba(0,0,0,0) 55%),
-              linear-gradient(180deg, #0b0f16 0%, #0a0d13 100%) !important;
-}
-
-/* Main padding: 상단 박스 잘림 방지 */
-section.main > div { padding-top: 18px !important; }
-
-/* Sidebar */
-[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%) !important;
-  border-right: 1px solid rgba(255,255,255,0.08);
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
 
 # -----------------------------
 # Global CSS (top padding fix + sidebar brand)
@@ -228,10 +199,10 @@ def run_embedded_app(app_key: str):
       to sys.path to make local imports resolve.
     """
     import importlib.util
+    import sys
 
     repo_root = os.path.dirname(__file__)
     apps_root = os.path.join(repo_root, "apps")
-    modules_root = os.path.join(repo_root, "modules")
     base = os.path.join(apps_root, app_key)
     target = os.path.join(base, "app.py")
 
@@ -239,8 +210,7 @@ def run_embedded_app(app_key: str):
         st.error(f"앱 파일을 찾을 수 없습니다: {target}")
         return
 
-    old_sys_path = list(sys.path)
-    for p in (base, apps_root, modules_root, repo_root):
+    for p in (base, apps_root, repo_root):
         if p not in sys.path:
             sys.path.insert(0, p)
 
@@ -249,8 +219,6 @@ def run_embedded_app(app_key: str):
         nonce = st.session_state.get("nav_nonce", 0)
         mod_name = f"mso_{app_key}_{nonce}"
         spec = importlib.util.spec_from_file_location(mod_name, target)
-        # Mark as embedded so child apps can switch CSS / behavior
-        os.environ['MISHARP_EMBED'] = '1'
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)
@@ -258,8 +226,6 @@ def run_embedded_app(app_key: str):
             module.render()
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
-    finally:
-        sys.path = old_sys_path
 
 # -----------------------------
 
@@ -270,8 +236,7 @@ with st.sidebar:
         """
         <style>
         .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
-        /* Brand: keep box size, make text ~2x */
-        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:38px !important;letter-spacing:0.4px !important;}
+        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
         .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
         /* Sidebar menu buttons (previous "card-button" vibe) */
         section[data-testid="stSidebar"] .stButton > button{
@@ -283,10 +248,7 @@ with st.sidebar:
             color:#EDEDED !important;
             font-weight:800 !important;
             letter-spacing:-0.2px;
-            text-align:left !important;
         }
-        /* left align inner layout */
-        section[data-testid="stSidebar"] .stButton > button > div{justify-content:flex-start !important;}
         section[data-testid="stSidebar"] .stButton > button:hover{
             background:rgba(255,255,255,0.06) !important;
             border-color:rgba(255,255,255,0.18) !important;
@@ -295,8 +257,8 @@ with st.sidebar:
             transform: translateY(0px);
         }
         .mso-badge{display:inline-flex;align-items:center;justify-content:center;
-            min-width:34px;height:18px;font-size:9px;font-weight:700;color:white;
-            padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
+            min-width:36px;height:18px;font-size:10px;font-weight:900;color:white;
+            padding:0 7px;border-radius:6px;line-height:1;margin-top:10px;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
         .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
@@ -352,19 +314,13 @@ with st.sidebar:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
         dot = '●' if is_active else '○'
-        # Give the badge more room so it stays in one line
-        c1, c2 = st.sidebar.columns([0.80, 0.20], gap='small')
+        c1, c2 = st.sidebar.columns([0.84, 0.16], gap='small')
         if c1.button(f"{dot} {p['label']}", key=f"nav_{pid}", use_container_width=True):
             _go(pid)
 
+        badge_cls = 'pro' if p.get('pro', False) else 'free'
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
-        badge_cls = 'mso-badge-pro' if p.get('pro', False) else 'mso-badge-free'
-        c2.markdown(
-            f"<div style='display:flex;justify-content:flex-end;'>"
-            f"<span class='mso-badge {badge_cls}'>{badge_text}</span>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+        c2.markdown(f"<span class='mso-badge {badge_cls}'>{badge_text}</span>", unsafe_allow_html=True)
 
     # Sidebar footer
     st.sidebar.markdown(
@@ -379,9 +335,6 @@ def dashboard():
     # 사용자 개인 업무용 대시보드
     import uuid
     from datetime import datetime
-    import json
-    from urllib.request import urlopen
-    from urllib.error import URLError
 
     # page_header() handles the title/subtitle
 
@@ -405,73 +358,11 @@ def dashboard():
     # -----------------------------
     c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
 
-    @st.cache_data(ttl=1800, show_spinner=False)
-    def _fetch_weather_seoul_daily():
-        """서울/경기권(서울 좌표) 간단 날씨 + 최고/최저.
-
-        - Open-Meteo(무료, 키 불필요) 사용
-        """
-        lat, lon = 37.5665, 126.9780  # Seoul
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            f"?latitude={lat}&longitude={lon}"
-            "&current_weather=true"
-            "&daily=weathercode,temperature_2m_max,temperature_2m_min"
-            "&timezone=Asia%2FSeoul"
-        )
-        try:
-            with urlopen(url, timeout=6) as r:
-                data = json.loads(r.read().decode("utf-8"))
-        except (URLError, TimeoutError, ValueError):
-            return None
-
-        daily = (data or {}).get("daily") or {}
-        codes = daily.get("weathercode") or []
-        tmaxs = daily.get("temperature_2m_max") or []
-        tmins = daily.get("temperature_2m_min") or []
-        if not codes or not tmaxs or not tmins:
-            return None
-
-        code = int(codes[0])
-        tmax = float(tmaxs[0])
-        tmin = float(tmins[0])
-
-        # Open-Meteo weathercode → 심플 한글
-        if code == 0:
-            desc = "맑음"
-        elif code in (1, 2, 3):
-            desc = "흐림"
-        elif code in (45, 48):
-            desc = "안개"
-        elif 71 <= code <= 77:
-            desc = "눈"
-        elif 95 <= code <= 99:
-            desc = "뇌우"
-        elif 80 <= code <= 82:
-            desc = "소나기"
-        elif 51 <= code <= 67:
-            desc = "비"
-        else:
-            desc = "흐림"
-
-        return desc, round(tmax), round(tmin)
-
     with c1:
         now = datetime.now()
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        # 1줄: 날짜(요일) + 시간
-        dow_ko = ["월", "화", "수", "목", "금", "토", "일"][now.weekday()]
-        line1 = f"{now.strftime('%Y-%m-%d')}({dow_ko}) {now.strftime('%H:%M')}"
-        st.markdown("### 오늘")
-        st.markdown(f"**{line1}**")
-
-        # 2줄: 날씨 + 최고/최저 (서울/경기권)
-        w = _fetch_weather_seoul_daily()
-        if w:
-            desc, tmax, tmin = w
-            st.caption(f"{desc}  {tmax}° / {tmin}°")
-        else:
-            st.caption("날씨 정보를 불러오지 못했어요.")
+        st.markdown(f"### 오늘\n**{now.strftime('%Y-%m-%d')}**")
+        st.caption(now.strftime("%A"))
         st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
@@ -533,34 +424,28 @@ def dashboard():
         for i, sc in enumerate(shortcuts):
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                title = sc.get('title','(제목 없음)')
-                url = sc.get('url', '')
-                # URL text hidden for cleaner cards
-                st.link_button(title, url, use_container_width=True)
+                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
+                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
+                st.caption(sc.get("url", ""))
+                st.link_button("열기", sc.get("url", ""), use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
-        a1, a2, a3 = st.columns([2.2, 4.6, 1.2])
-
-        a1.markdown("<div class='ms-field-label'>제목</div>", unsafe_allow_html=True)
-        title = a1.text_input("", "", key="sc_add_title", label_visibility="collapsed")
-
-        a2.markdown("<div class='ms-field-label'>URL</div>", unsafe_allow_html=True)
-        url = a2.text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
-
-        a3.markdown("<div class='ms-field-label'>&nbsp;</div>", unsafe_allow_html=True)
-        a3.markdown("<div style='height:22px;'></div>", unsafe_allow_html=True)
-        if a3.button("추가", key="shortcut_add", use_container_width=True):
+        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
+        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
+        title = a2.text_input("제목", "", key="sc_add_title")
+        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
+        if a4.button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
             elif not _valid_url(url):
                 st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
             else:
                 st.session_state.dash_shortcuts.append(
-                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip()}
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
                 )
                 st.success("추가되었습니다.")
                 st.rerun()
@@ -568,17 +453,18 @@ def dashboard():
         st.divider()
         st.markdown("**기존 바로가기 관리**")
         for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([2.2, 4.6, 1.2])
-            new_title = row[0].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
-            new_url = row[1].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
-            row[2].markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-            if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+            row = st.columns([1.2, 2.2, 4.2, 1.2])
+            row[0].markdown(sc.get("emoji", "🔗"))
+            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
+            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
+            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
                 st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
                 st.rerun()
             # 저장(자동 반영)
             sc["title"] = new_title
             sc["url"] = new_url
-st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
 page = st.session_state.get('page') or get_page()
@@ -596,27 +482,6 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
-    st.markdown("""<style>
-/* Detailpage embedded app readability fixes */
-section.main h1, section.main h2, section.main h3, section.main h4, section.main h5, section.main h6,
-section.main label,
-section.main p,
-section.main span,
-section.main div[data-testid="stMarkdownContainer"] p,
-section.main div[data-testid="stMarkdownContainer"] span,
-section.main div[data-testid="stMarkdownContainer"] strong,
-section.main div[data-testid="stCaptionContainer"] span,
-section.main div[data-testid="stFileUploader"] label,
-section.main div[data-testid="stFileUploader"] span,
-section.main div[data-testid="stFileUploader"] small,
-section.main div[data-testid="stSlider"] label,
-section.main div[data-testid="stSlider"] span {
-    color: rgba(255,255,255,0.92) !important;
-}
-section.main small { color: rgba(255,255,255,0.7) !important; }
-.stFileUploader p, .stFileUploader span { color: rgba(255,255,255,0.85) !important; }
-.ms-field-label{font-size:12px;opacity:.85;margin:0 0 6px 0;}
-</style>""", unsafe_allow_html=True)
     run_embedded_app('detailpage')
 elif page == 'thumbnail':
     run_embedded_app('thumbnail')

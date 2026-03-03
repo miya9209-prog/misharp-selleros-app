@@ -2,8 +2,6 @@ import streamlit as st
 from PIL import Image
 import io
 import os
-
-EMBED_DARK = os.environ.get('MISHARP_EMBED', '') == '1'
 import base64
 import hashlib
 from typing import List, Optional
@@ -407,6 +405,36 @@ div[data-testid="stDownloadButton"] > button:hover{{
   font-weight: 900;
   color:#111827;
 }}
+
+/* --- Dark theme compatibility (Seller OS wrapper) --- */
+:root{
+  --ms-text-strong: rgba(245,247,252,0.95);
+  --ms-text: rgba(230,234,244,0.92);
+  --ms-muted: rgba(200,206,220,0.70);
+}
+/* Labels / headings */
+.ms-wrap h1, .ms-wrap h2, .ms-wrap h3, .ms-wrap h4,
+.ms-wrap p, .ms-wrap label, .ms-wrap span,
+div[data-testid="stFileUploader"] label,
+div[data-testid="stFileUploader"] small,
+div[data-testid="stSlider"] label,
+div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stMarkdownContainer"] span{
+  color: var(--ms-text) !important;
+}
+/* File uploader helper texts */
+div[data-testid="stFileUploader"] small,
+div[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzoneInstructions"]{
+  color: var(--ms-muted) !important;
+}
+/* Uploaded file name list */
+div[data-testid="stFileUploader"] [data-testid="stFileUploaderFileName"]{
+  color: var(--ms-text-strong) !important;
+}
+/* General widget text inside this tool */
+div[data-testid="stFileUploader"], div[data-testid="stSlider"], div[data-testid="stButton"]{
+  color: var(--ms-text) !important;
+}
 </style>
 """,
     unsafe_allow_html=True,
