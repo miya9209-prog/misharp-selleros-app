@@ -531,7 +531,6 @@ def dashboard():
         for i, sc in enumerate(shortcuts):
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
                 title = sc.get('title','(제목 없음)')
                 url = sc.get('url', '')
                 # URL text hidden for cleaner cards
@@ -554,6 +553,8 @@ def dashboard():
         url = a3.text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
 
         a4.markdown("<div class='ms-field-label'>&nbsp;</div>", unsafe_allow_html=True)
+        # URL 입력창과 버튼이 같은 라인에 자연스럽게 맞도록 약간의 상단 여백을 추가
+        a4.markdown("<div style='height:22px;'></div>", unsafe_allow_html=True)
         if a4.button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
@@ -570,7 +571,8 @@ def dashboard():
         st.markdown("**기존 바로가기 관리**")
         for sc in list(st.session_state.dash_shortcuts):
             row = st.columns([1.2, 2.2, 4.2, 1.2])
-            row[0].markdown(sc.get("emoji", "🔗"))
+            # 이모지는 UI에서 노출하지 않습니다 (깔끔한 리스트 유지)
+            row[0].markdown("")
             new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
             new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
             if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
@@ -600,13 +602,23 @@ if page == 'dashboard':
 elif page == 'detailpage':
     st.markdown("""<style>
 /* Detailpage embedded app readability fixes */
-section.main label, section.main p, section.main span, section.main div[data-testid="stMarkdownContainer"] p,
+section.main h1, section.main h2, section.main h3, section.main h4, section.main h5, section.main h6,
+section.main label,
+section.main p,
+section.main span,
+section.main div[data-testid="stMarkdownContainer"] p,
 section.main div[data-testid="stMarkdownContainer"] span,
 section.main div[data-testid="stMarkdownContainer"] strong,
-section.main div[data-testid="stCaptionContainer"] span {
+section.main div[data-testid="stCaptionContainer"] span,
+section.main div[data-testid="stFileUploader"] label,
+section.main div[data-testid="stFileUploader"] span,
+section.main div[data-testid="stFileUploader"] small,
+section.main div[data-testid="stSlider"] label,
+section.main div[data-testid="stSlider"] span {
     color: rgba(255,255,255,0.92) !important;
 }
 section.main small { color: rgba(255,255,255,0.7) !important; }
+.stFileUploader p, .stFileUploader span { color: rgba(255,255,255,0.85) !important; }
 .ms-field-label{font-size:12px;opacity:.85;margin:0 0 6px 0;}
 </style>""", unsafe_allow_html=True)
     run_embedded_app('detailpage')
