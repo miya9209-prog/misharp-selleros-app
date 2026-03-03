@@ -424,46 +424,74 @@ def dashboard():
         for i, sc in enumerate(shortcuts):
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
-                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
-                st.caption(sc.get("url", ""))
-                st.link_button("열기", sc.get("url", ""), use_container_width=True)
+                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
-        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
-        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
-        title = a2.text_input("제목", "", key="sc_add_title")
-        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
-        if a4.button("추가", key="shortcut_add", use_container_width=True):
-            if not title.strip():
-                st.error("제목을 입력해 주세요.")
-            elif not _valid_url(url):
-                st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
+
+        # 헤더(정렬용)
+        h = st.columns([2.2, 4.0, 1.2])
+        h[0].markdown("제목")
+        h[1].markdown("URL")
+        h[2].markdown("&nbsp;", unsafe_allow_html=True)
+
+        row = st.columns([2.2, 4.0, 1.2])
+        new_title = row[0].text_input(
+            "",
+            key="sc_new_title",
+            placeholder="예) 미샵 관리자",
+            label_visibility="collapsed",
+        )
+        new_url = row[1].text_input(
+            "",
+            key="sc_new_url",
+            placeholder="https://",
+            label_visibility="collapsed",
+        )
+        if row[2].button("추가", key="sc_add", use_container_width=True):
+            if not new_title.strip() or not new_url.strip():
+                st.error("제목과 URL을 모두 입력해 주세요.")
             else:
-                st.session_state.dash_shortcuts.append(
-                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
-                )
+                st.session_state.dash_shortcuts.append({
+                    "id": str(uuid.uuid4())[:8],
+                    "title": new_title.strip(),
+                    "url": new_url.strip(),
+                    "emoji": "",
+                })
                 st.success("추가되었습니다.")
                 st.rerun()
 
-        st.divider()
-        st.markdown("**기존 바로가기 관리**")
-        for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([1.2, 2.2, 4.2, 1.2])
-            row[0].markdown(sc.get("emoji", "🔗"))
-            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
-            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
-            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
-                st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
-                st.rerun()
-            # 저장(자동 반영)
-            sc["title"] = new_title
-            sc["url"] = new_url
+        st.markdown(
+            "<hr style='border:none;border-top:1px solid rgba(255,255,255,.12); margin:16px 0;'>",
+            unsafe_allow_html=True,
+        )
 
+        st.markdown("**기존 바로가기 관리**")
+        if not st.session_state.dash_shortcuts:
+            st.caption("아직 등록된 바로가기가 없습니다.")
+        else:
+            for sc in st.session_state.dash_shortcuts:
+                row = st.columns([2.2, 4.0, 1.2])
+                new_title = row[0].text_input(
+                    "",
+                    sc.get("title", ""),
+                    key=f"sc_title_{sc['id']}",
+                    label_visibility="collapsed",
+                )
+                new_url = row[1].text_input(
+                    "",
+                    sc.get("url", ""),
+                    key=f"sc_url_{sc['id']}",
+                    label_visibility="collapsed",
+                )
+                if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+                    st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
+                    st.rerun()
+
+                sc["title"] = new_title
+                sc["url"] = new_url
     st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
