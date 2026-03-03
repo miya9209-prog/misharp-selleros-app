@@ -377,6 +377,9 @@ def dashboard():
     # 사용자 개인 업무용 대시보드
     import uuid
     from datetime import datetime
+    import json
+    from urllib.request import urlopen
+    from urllib.error import URLError
 
     # page_header() handles the title/subtitle
 
@@ -400,11 +403,73 @@ def dashboard():
     # -----------------------------
     c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
 
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _fetch_weather_seoul_daily():
+        """서울/경기권(서울 좌표) 간단 날씨 + 최고/최저.
+
+        - Open-Meteo(무료, 키 불필요) 사용
+        """
+        lat, lon = 37.5665, 126.9780  # Seoul
+        url = (
+            "https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            "&current_weather=true"
+            "&daily=weathercode,temperature_2m_max,temperature_2m_min"
+            "&timezone=Asia%2FSeoul"
+        )
+        try:
+            with urlopen(url, timeout=6) as r:
+                data = json.loads(r.read().decode("utf-8"))
+        except (URLError, TimeoutError, ValueError):
+            return None
+
+        daily = (data or {}).get("daily") or {}
+        codes = daily.get("weathercode") or []
+        tmaxs = daily.get("temperature_2m_max") or []
+        tmins = daily.get("temperature_2m_min") or []
+        if not codes or not tmaxs or not tmins:
+            return None
+
+        code = int(codes[0])
+        tmax = float(tmaxs[0])
+        tmin = float(tmins[0])
+
+        # Open-Meteo weathercode → 심플 한글
+        if code == 0:
+            desc = "맑음"
+        elif code in (1, 2, 3):
+            desc = "흐림"
+        elif code in (45, 48):
+            desc = "안개"
+        elif 71 <= code <= 77:
+            desc = "눈"
+        elif 95 <= code <= 99:
+            desc = "뇌우"
+        elif 80 <= code <= 82:
+            desc = "소나기"
+        elif 51 <= code <= 67:
+            desc = "비"
+        else:
+            desc = "흐림"
+
+        return desc, round(tmax), round(tmin)
+
     with c1:
         now = datetime.now()
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.markdown(f"### 오늘\n**{now.strftime('%Y-%m-%d')}**")
-        st.caption(now.strftime("%A"))
+        # 1줄: 날짜(요일) + 시간
+        dow_ko = ["월", "화", "수", "목", "금", "토", "일"][now.weekday()]
+        line1 = f"{now.strftime('%Y-%m-%d')}({dow_ko}) {now.strftime('%H:%M')}"
+        st.markdown("### 오늘")
+        st.markdown(f"**{line1}**")
+
+        # 2줄: 날씨 + 최고/최저 (서울/경기권)
+        w = _fetch_weather_seoul_daily()
+        if w:
+            desc, tmax, tmin = w
+            st.caption(f"{desc}  {tmax}° / {tmin}°")
+        else:
+            st.caption("날씨 정보를 불러오지 못했어요.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
