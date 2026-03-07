@@ -225,6 +225,10 @@ def run_embedded_app(app_key: str):
         spec.loader.exec_module(module)
         if hasattr(module, "render") and callable(getattr(module, "render")):
             module.render()
+        elif hasattr(module, "main") and callable(getattr(module, "main")):
+            module.main()
+        else:
+            st.info(f"{app_key} 모듈을 불러왔지만 실행 진입점(render/main)을 찾지 못했습니다.")
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
@@ -236,38 +240,36 @@ with st.sidebar:
     st.sidebar.markdown(
         """
         <style>
-        .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
-        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:32px !important;letter-spacing:0.4px !important;}
-        .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
-        /* Sidebar menu buttons (previous "card-button" vibe) */
+        .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;text-align:left !important;min-height:54px !important;}
+        .mso-brand-btn button > div{justify-content:flex-start !important;}
+        .mso-brand-btn button p,.mso-brand-btn button span{color:#EDEDED !important;font-weight:900 !important;font-size:40px !important;letter-spacing:0.6px !important;line-height:1.05 !important;}
+        .mso-brand-btn button:hover p,.mso-brand-btn button:hover span{text-decoration:none !important;opacity:0.95 !important;}
+        /* Sidebar menu buttons */
         section[data-testid="stSidebar"] .stButton > button{
             width:100%;
-            padding:12px 12px !important;
+            min-height:46px !important;
+            padding:10px 14px !important;
             border-radius:10px !important;
             border:1px solid rgba(255,255,255,0.10) !important;
             background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            font-weight:800 !important;
+            font-weight:700 !important;
             letter-spacing:-0.2px;
-        text-align:left !important;
-        justify-content:flex-start !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
         }
+        section[data-testid="stSidebar"] .stButton > button > div{justify-content:flex-start !important;width:100% !important;}
+        section[data-testid="stSidebar"] .stButton > button p, section[data-testid="stSidebar"] .stButton > button span{width:100% !important;text-align:left !important;font-weight:700 !important;}
         section[data-testid="stSidebar"] .stButton > button:hover{
             background:rgba(255,255,255,0.06) !important;
             border-color:rgba(255,255,255,0.18) !important;
         }
-        section[data-testid="stSidebar"] .stButton > button:active{
-            transform: translateY(0px);
-        }
-        .mso-badge{display:inline-flex;align-items:center;justify-content:center;
-            min-width:36px;height:18px;font-size:9px;font-weight:600;color:white;
-            padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
+        section[data-testid="stSidebar"] .stButton > button:active{transform: translateY(0px);}
+        .mso-active-item{display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:46px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#ffffff;color:#0f1624;font-weight:800;box-sizing:border-box;}
+        .mso-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:18px;font-size:9px;font-weight:500;color:white;padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
-        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
-            padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);
-            font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
-            background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
+        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);font-size:11px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
         </style>
         """,
         unsafe_allow_html=True,
@@ -316,10 +318,12 @@ with st.sidebar:
     for p in PAGES:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
-        dot = '●' if is_active else '○'
         c1, c2 = st.sidebar.columns([0.82, 0.18], gap='small')
-        if c1.button(f"{dot} {p['label']}", key=f"nav_{pid}", use_container_width=True):
-            _go(pid)
+        if is_active:
+            c1.markdown(f"<div class='mso-active-item'>{p['label']}</div>", unsafe_allow_html=True)
+        else:
+            if c1.button(p['label'], key=f"nav_{pid}", use_container_width=True):
+                _go(pid)
 
         badge_cls = 'pro' if p.get('pro', False) else 'free'
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
@@ -427,28 +431,29 @@ def dashboard():
         for i, sc in enumerate(shortcuts):
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
-                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
-                st.caption(sc.get("url", ""))
-                st.link_button("열기", sc.get("url", ""), use_container_width=True)
+                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
-        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
-        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
-        title = a2.text_input("제목", "", key="sc_add_title")
-        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
-        if a4.button("추가", key="shortcut_add", use_container_width=True):
+        h = st.columns([2.2, 4.0, 1.2])
+        h[0].markdown("제목")
+        h[1].markdown("URL")
+        h[2].markdown("&nbsp;", unsafe_allow_html=True)
+
+        row = st.columns([2.2, 4.0, 1.2], vertical_alignment="bottom")
+        title = row[0].text_input("", "", key="sc_add_title", placeholder="예) 미샵 관리자", label_visibility="collapsed")
+        url = row[1].text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
+        if row[2].button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
             elif not _valid_url(url):
                 st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
             else:
                 st.session_state.dash_shortcuts.append(
-                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": ""}
                 )
                 st.success("추가되었습니다.")
                 st.rerun()
@@ -456,14 +461,12 @@ def dashboard():
         st.divider()
         st.markdown("**기존 바로가기 관리**")
         for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([1.2, 2.2, 4.2, 1.2])
-            row[0].markdown(sc.get("emoji", "🔗"))
-            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
-            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
-            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+            row = st.columns([2.2, 4.2, 1.2], vertical_alignment="center")
+            new_title = row[0].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
+            new_url = row[1].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
+            if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
                 st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
                 st.rerun()
-            # 저장(자동 반영)
             sc["title"] = new_title
             sc["url"] = new_url
 
