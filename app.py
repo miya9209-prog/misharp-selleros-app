@@ -11,10 +11,9 @@ PAGES = [
     {"id": "detailpage", "label": "상세페이지 생성", "subtitle": "이미지 업로드만 하면 상세페이지가 자동으로 완성됩니다.", "pro": False},
     {"id": "thumbnail", "label": "썸네일 생성", "subtitle": "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.", "pro": True},
     {"id": "gif", "label": "GIF 생성", "subtitle": "이미지/영상으로 상품 GIF를 빠르게 생성합니다.", "pro": True},
+    {"id": "blog", "label": "블로그 작성", "subtitle": "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
     {"id": "image_crop", "label": "이미지 추출 생성", "subtitle": "상품 이미지 크롭/추출 도구를 OS 안에 탑재했습니다.", "pro": True},
     {"id": "copy", "label": "상품설명 생성", "subtitle": "상품 특장점 기반으로 상세설명 문구를 자동 생성합니다.", "pro": True},
-    {"id": "seo", "label": "SEO 생성", "subtitle": "상품 SEO 메타·키워드·설명문을 빠르게 생성합니다.", "pro": True},
-    {"id": "blog", "label": "블로그 작성", "subtitle": "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
     {"id": "shortform", "label": "숏폼 메이커", "subtitle": "릴스/숏츠용 후킹 스크립트·구성안을 빠르게 만듭니다.", "pro": True},
 ]
 
@@ -228,7 +227,7 @@ def run_embedded_app(app_key: str):
         elif hasattr(module, "main") and callable(getattr(module, "main")):
             module.main()
         else:
-            st.info(f"{app_key} 모듈을 불러왔지만 실행 진입점(render/main)을 찾지 못했습니다.")
+            st.info("이 도구는 아직 통합 진입점(render/main)이 없습니다.")
     except Exception as e:
         st.error(f"앱 실행 중 오류: {e}")
 
@@ -239,38 +238,86 @@ def run_embedded_app(app_key: str):
 with st.sidebar:
     st.sidebar.markdown(
         """
+
         <style>
-        .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;text-align:left !important;min-height:54px !important;}
-        .mso-brand-btn button > div{justify-content:flex-start !important;}
-        .mso-brand-btn button p,.mso-brand-btn button span{color:#EDEDED !important;font-weight:900 !important;font-size:40px !important;letter-spacing:0.6px !important;line-height:1.05 !important;}
-        .mso-brand-btn button:hover p,.mso-brand-btn button:hover span{text-decoration:none !important;opacity:0.95 !important;}
+        .mso-brand-btn button{
+            background:transparent !important;
+            border:none !important;
+            padding:0 !important;
+            margin-bottom:4px !important;
+        }
+        .mso-brand-btn button p{
+            color:#EDEDED !important;
+            font-weight:900 !important;
+            font-size:30px !important;
+            letter-spacing:0.5px !important;
+        }
+        .mso-brand-btn button:hover p{opacity:0.92 !important;}
+
         /* Sidebar menu buttons */
         section[data-testid="stSidebar"] .stButton > button{
             width:100%;
-            min-height:46px !important;
-            padding:10px 14px !important;
+            padding:12px 16px !important;
             border-radius:10px !important;
             border:1px solid rgba(255,255,255,0.10) !important;
             background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            font-weight:700 !important;
-            letter-spacing:-0.2px;
+            font-weight:600 !important;
+            letter-spacing:-0.1px !important;
             text-align:left !important;
             justify-content:flex-start !important;
+            min-height:48px !important;
+            margin-bottom:8px !important;
         }
-        section[data-testid="stSidebar"] .stButton > button > div{justify-content:flex-start !important;width:100% !important;}
-        section[data-testid="stSidebar"] .stButton > button p, section[data-testid="stSidebar"] .stButton > button span{width:100% !important;text-align:left !important;font-weight:700 !important;}
+        section[data-testid="stSidebar"] .stButton > button > div{
+            justify-content:flex-start !important;
+            width:100% !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button p{
+            text-align:left !important;
+            width:100% !important;
+            margin:0 !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"]{
+            background:#ffffff !important;
+            color:#111827 !important;
+            border-color:#ffffff !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"] p{
+            color:#111827 !important;
+        }
         section[data-testid="stSidebar"] .stButton > button:hover{
-            background:rgba(255,255,255,0.06) !important;
+            background:rgba(255,255,255,0.08) !important;
             border-color:rgba(255,255,255,0.18) !important;
         }
-        section[data-testid="stSidebar"] .stButton > button:active{transform: translateY(0px);}
-        .mso-active-item{display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:46px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#ffffff;color:#0f1624;font-weight:800;box-sizing:border-box;}
-        .mso-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:18px;font-size:9px;font-weight:500;color:white;padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover{
+            background:#f4f4f5 !important;
+            border-color:#f4f4f5 !important;
+        }
+
+        .mso-badge{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:34px;
+            height:18px;
+            font-size:9px;
+            font-weight:600;
+            color:white;
+            padding:0 6px;
+            border-radius:6px;
+            line-height:1;
+            margin-top:13px;
+            white-space:nowrap;
+        }
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
-        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);font-size:11px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
+        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
+            padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);
+            font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
+            background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
         </style>
+
         """,
         unsafe_allow_html=True,
     )
@@ -319,15 +366,21 @@ with st.sidebar:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
         c1, c2 = st.sidebar.columns([0.82, 0.18], gap='small')
-        if is_active:
-            c1.markdown(f"<div class='mso-active-item'>{p['label']}</div>", unsafe_allow_html=True)
-        else:
-            if c1.button(p['label'], key=f"nav_{pid}", use_container_width=True):
-                _go(pid)
+        if c1.button(
+            p['label'],
+            key=f"nav_{pid}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary",
+        ):
+            _go(pid)
 
         badge_cls = 'pro' if p.get('pro', False) else 'free'
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
-        c2.markdown(f"<span class='mso-badge {badge_cls}'>{badge_text}</span>", unsafe_allow_html=True)
+        c2.markdown(
+            f"<div style='display:flex;justify-content:flex-end;align-items:center;height:48px;'>"
+            f"<span class='mso-badge {badge_cls}'>{badge_text}</span></div>",
+            unsafe_allow_html=True,
+        )
 
     # Sidebar footer
     st.sidebar.markdown(
@@ -443,9 +496,10 @@ def dashboard():
         h[1].markdown("URL")
         h[2].markdown("&nbsp;", unsafe_allow_html=True)
 
-        row = st.columns([2.2, 4.0, 1.2], vertical_alignment="bottom")
+        row = st.columns([2.2, 4.0, 1.2])
         title = row[0].text_input("", "", key="sc_add_title", placeholder="예) 미샵 관리자", label_visibility="collapsed")
-        url = row[1].text_input("", "", key="sc_add_url", placeholder="https:// 로 시작", label_visibility="collapsed")
+        url = row[1].text_input("", "", key="sc_add_url", placeholder="https://", label_visibility="collapsed")
+        row[2].markdown("<div style='height: 29px;'></div>", unsafe_allow_html=True)
         if row[2].button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
@@ -461,7 +515,7 @@ def dashboard():
         st.divider()
         st.markdown("**기존 바로가기 관리**")
         for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([2.2, 4.2, 1.2], vertical_alignment="center")
+            row = st.columns([2.2, 4.0, 1.2])
             new_title = row[0].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
             new_url = row[1].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
             if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
@@ -485,7 +539,6 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
     st.warning('이 기능은 **PRO 전용**입니다. 좌측 사이드바에서 로그인 코드를 입력해 잠금 해제해 주세요.')
     st.stop()
 
-
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
@@ -494,16 +547,13 @@ elif page == 'thumbnail':
     run_embedded_app('thumbnail')
 elif page == 'gif':
     run_embedded_app('gif')
+elif page == 'blog':
+    run_embedded_app('blog')
 elif page == 'image_crop':
     run_embedded_app('image_crop')
 elif page == 'copy':
     st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
-elif page == 'seo':
-    run_embedded_app('seo')
-elif page == 'blog':
-    run_embedded_app('blog')
 elif page == 'shortform':
     st.info('숏폼 메이커는 **다음 단계에서** 탑재합니다. (PRO 전용)')
 else:
     st.info('준비 중인 페이지입니다.')
-
