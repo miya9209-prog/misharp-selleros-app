@@ -1,0 +1,1 @@
+Copy app.py to repo root and apps/seo/app.py into your existing repo. requirements.txt may overwrite existing root requirements if needed. For this multi-file integration, GitHub Desktop is recommended. For small single-file text/CSS edits later, GitHub web is fine.

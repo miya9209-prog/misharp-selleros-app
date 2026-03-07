@@ -11,9 +11,10 @@ PAGES = [
     {"id": "detailpage", "label": "상세페이지 생성", "subtitle": "이미지 업로드만 하면 상세페이지가 자동으로 완성됩니다.", "pro": False},
     {"id": "thumbnail", "label": "썸네일 생성", "subtitle": "규격에 맞게 자동 배치·텍스트 합성으로 썸네일을 만듭니다.", "pro": True},
     {"id": "gif", "label": "GIF 생성", "subtitle": "이미지/영상으로 상품 GIF를 빠르게 생성합니다.", "pro": True},
-    {"id": "blog", "label": "블로그 작성", "subtitle": "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
     {"id": "image_crop", "label": "이미지 추출 생성", "subtitle": "상품 이미지 크롭/추출 도구를 OS 안에 탑재했습니다.", "pro": True},
     {"id": "copy", "label": "상품설명 생성", "subtitle": "상품 특장점 기반으로 상세설명 문구를 자동 생성합니다.", "pro": True},
+    {"id": "seo", "label": "SEO 생성", "subtitle": "상품 SEO 메타·키워드·설명문을 빠르게 생성합니다.", "pro": True},
+    {"id": "blog", "label": "블로그 작성", "subtitle": "상품/키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
     {"id": "shortform", "label": "숏폼 메이커", "subtitle": "릴스/숏츠용 후킹 스크립트·구성안을 빠르게 만듭니다.", "pro": True},
 ]
 
@@ -236,7 +237,7 @@ with st.sidebar:
         """
         <style>
         .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
-        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:20px !important;letter-spacing:0.4px !important;}
+        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:32px !important;letter-spacing:0.4px !important;}
         .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
         /* Sidebar menu buttons (previous "card-button" vibe) */
         section[data-testid="stSidebar"] .stButton > button{
@@ -248,6 +249,8 @@ with st.sidebar:
             color:#EDEDED !important;
             font-weight:800 !important;
             letter-spacing:-0.2px;
+        text-align:left !important;
+        justify-content:flex-start !important;
         }
         section[data-testid="stSidebar"] .stButton > button:hover{
             background:rgba(255,255,255,0.06) !important;
@@ -257,8 +260,8 @@ with st.sidebar:
             transform: translateY(0px);
         }
         .mso-badge{display:inline-flex;align-items:center;justify-content:center;
-            min-width:36px;height:18px;font-size:10px;font-weight:900;color:white;
-            padding:0 7px;border-radius:6px;line-height:1;margin-top:10px;}
+            min-width:36px;height:18px;font-size:9px;font-weight:600;color:white;
+            padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
         .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
@@ -314,7 +317,7 @@ with st.sidebar:
         pid = p['id']
         is_active = (pid == st.session_state['page'])
         dot = '●' if is_active else '○'
-        c1, c2 = st.sidebar.columns([0.84, 0.16], gap='small')
+        c1, c2 = st.sidebar.columns([0.82, 0.18], gap='small')
         if c1.button(f"{dot} {p['label']}", key=f"nav_{pid}", use_container_width=True):
             _go(pid)
 
@@ -424,74 +427,46 @@ def dashboard():
         for i, sc in enumerate(shortcuts):
             with cols[i % 4]:
                 st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
+                st.markdown(f"<div class='ms-shortcut-emoji'>{sc.get('emoji','🔗')}</div>", unsafe_allow_html=True)
+                st.markdown(f"**{sc.get('title','(제목 없음)')}**")
+                st.caption(sc.get("url", ""))
+                st.link_button("열기", sc.get("url", ""), use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
-
-        # 헤더(정렬용)
-        h = st.columns([2.2, 4.0, 1.2])
-        h[0].markdown("제목")
-        h[1].markdown("URL")
-        h[2].markdown("&nbsp;", unsafe_allow_html=True)
-
-        row = st.columns([2.2, 4.0, 1.2])
-        new_title = row[0].text_input(
-            "",
-            key="sc_new_title",
-            placeholder="예) 미샵 관리자",
-            label_visibility="collapsed",
-        )
-        new_url = row[1].text_input(
-            "",
-            key="sc_new_url",
-            placeholder="https://",
-            label_visibility="collapsed",
-        )
-        if row[2].button("추가", key="sc_add", use_container_width=True):
-            if not new_title.strip() or not new_url.strip():
-                st.error("제목과 URL을 모두 입력해 주세요.")
+        a1, a2, a3, a4 = st.columns([1.1, 2.2, 3.3, 1.2])
+        emoji = a1.text_input("아이콘", "🔗", key="sc_add_emoji")
+        title = a2.text_input("제목", "", key="sc_add_title")
+        url = a3.text_input("URL", "", key="sc_add_url", placeholder="https:// 로 시작")
+        if a4.button("추가", key="shortcut_add", use_container_width=True):
+            if not title.strip():
+                st.error("제목을 입력해 주세요.")
+            elif not _valid_url(url):
+                st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
             else:
-                st.session_state.dash_shortcuts.append({
-                    "id": str(uuid.uuid4())[:8],
-                    "title": new_title.strip(),
-                    "url": new_url.strip(),
-                    "emoji": "",
-                })
+                st.session_state.dash_shortcuts.append(
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": (emoji or "🔗").strip()}
+                )
                 st.success("추가되었습니다.")
                 st.rerun()
 
-        st.markdown(
-            "<hr style='border:none;border-top:1px solid rgba(255,255,255,.12); margin:16px 0;'>",
-            unsafe_allow_html=True,
-        )
-
+        st.divider()
         st.markdown("**기존 바로가기 관리**")
-        if not st.session_state.dash_shortcuts:
-            st.caption("아직 등록된 바로가기가 없습니다.")
-        else:
-            for sc in st.session_state.dash_shortcuts:
-                row = st.columns([2.2, 4.0, 1.2])
-                new_title = row[0].text_input(
-                    "",
-                    sc.get("title", ""),
-                    key=f"sc_title_{sc['id']}",
-                    label_visibility="collapsed",
-                )
-                new_url = row[1].text_input(
-                    "",
-                    sc.get("url", ""),
-                    key=f"sc_url_{sc['id']}",
-                    label_visibility="collapsed",
-                )
-                if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
-                    st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
-                    st.rerun()
+        for sc in list(st.session_state.dash_shortcuts):
+            row = st.columns([1.2, 2.2, 4.2, 1.2])
+            row[0].markdown(sc.get("emoji", "🔗"))
+            new_title = row[1].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
+            new_url = row[2].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
+            if row[3].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+                st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
+                st.rerun()
+            # 저장(자동 반영)
+            sc["title"] = new_title
+            sc["url"] = new_url
 
-                sc["title"] = new_title
-                sc["url"] = new_url
     st.markdown("</div>", unsafe_allow_html=True)
 # -----------------------------
 # Pages
@@ -507,6 +482,7 @@ if page in PRO_PAGE_IDS and not st.session_state.get('pro_authed', False):
     st.warning('이 기능은 **PRO 전용**입니다. 좌측 사이드바에서 로그인 코드를 입력해 잠금 해제해 주세요.')
     st.stop()
 
+
 if page == 'dashboard':
     dashboard()
 elif page == 'detailpage':
@@ -515,13 +491,16 @@ elif page == 'thumbnail':
     run_embedded_app('thumbnail')
 elif page == 'gif':
     run_embedded_app('gif')
-elif page == 'blog':
-    run_embedded_app('blog')
 elif page == 'image_crop':
     run_embedded_app('image_crop')
 elif page == 'copy':
     st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
+elif page == 'seo':
+    run_embedded_app('seo')
+elif page == 'blog':
+    run_embedded_app('blog')
 elif page == 'shortform':
     st.info('숏폼 메이커는 **다음 단계에서** 탑재합니다. (PRO 전용)')
 else:
     st.info('준비 중인 페이지입니다.')
+
