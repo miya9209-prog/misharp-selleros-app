@@ -329,12 +329,13 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    current_page = get_page()
+current_page = get_page()
 
 st.sidebar.markdown(
     '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
     unsafe_allow_html=True
 )
+
 
     # PRO login
     if st.session_state.get('pro_authed', False):
