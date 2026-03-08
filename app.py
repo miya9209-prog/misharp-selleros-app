@@ -242,40 +242,165 @@ with st.sidebar:
     st.sidebar.markdown(
         """
         <style>
-        .mso-brand-btn button{background:transparent !important;border:none !important;padding:0 !important;}
-        .mso-brand-btn button p{color:#EDEDED !important;font-weight:900 !important;font-size:32px !important;letter-spacing:0.4px !important;}
-        .mso-brand-btn button:hover p{text-decoration:underline !important;opacity:0.92 !important;}
-        /* Sidebar menu buttons (previous "card-button" vibe) */
+        /* ===== Brand ===== */
+        .mso-brand-link{
+            display:block;
+            text-decoration:none !important;
+            color:#EDEDED !important;
+            font-weight:900 !important;
+            font-size:30px !important;   /* 더 크게 */
+            letter-spacing:0.6px !important;
+            line-height:1.15;
+            margin: 4px 0 18px 0;
+            padding: 6px 2px 2px 2px;
+        }
+
+        /* ===== Sidebar login buttons ===== */
         section[data-testid="stSidebar"] .stButton > button{
             width:100%;
-            padding:12px 12px !important;
+            padding:12px 14px !important;
             border-radius:10px !important;
             border:1px solid rgba(255,255,255,0.10) !important;
             background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            font-weight:800 !important;
+            font-weight:600 !important;
             letter-spacing:-0.2px;
-        text-align:left !important;
-        justify-content:flex-start !important;
         }
         section[data-testid="stSidebar"] .stButton > button:hover{
             background:rgba(255,255,255,0.06) !important;
             border-color:rgba(255,255,255,0.18) !important;
         }
-        section[data-testid="stSidebar"] .stButton > button:active{
-            transform: translateY(0px);
+
+        /* ===== Custom nav ===== */
+        .mso-nav-wrap{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+            margin-top:8px;
         }
-        .mso-badge{display:inline-flex;align-items:center;justify-content:center;
-            min-width:36px;height:18px;font-size:9px;font-weight:600;color:white;
-            padding:0 6px;border-radius:6px;line-height:1;margin-top:10px;white-space:nowrap;}
-        .mso-badge.pro{background:#ff4d4f;}
-        .mso-badge.free{background:#2ecc71;}
-        .mso-sidebar-footer{position:fixed;left:0;bottom:0;width:300px;
-            padding:12px 12px 10px 12px;color:rgba(255,255,255,0.45);
-            font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
-            background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);}
+        .mso-nav-item{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            text-decoration:none !important;
+            border:1px solid rgba(255,255,255,0.10);
+            border-radius:10px;
+            padding:12px 14px;
+            background:rgba(255,255,255,0.02);
+            color:#EDEDED !important;
+            transition:all .15s ease;
+        }
+        .mso-nav-item:hover{
+            background:rgba(255,255,255,0.06);
+            border-color:rgba(255,255,255,0.18);
+        }
+        .mso-nav-item.active{
+            background:#ffffff !important;
+            color:#0d1522 !important;
+            border-color:#ffffff !important;
+        }
+        .mso-nav-label{
+            flex:1;
+            text-align:left;
+            font-weight:600;   /* 글자 두께 줄임 */
+            font-size:15px;
+            line-height:1.2;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        /* ===== Badge ===== */
+        .mso-badge{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:34px;
+            height:18px;
+            padding:0 6px;
+            border-radius:6px;
+            font-size:9px;
+            font-weight:600;   /* 얇게 */
+            line-height:1;
+            white-space:nowrap; /* FREE 한 줄 */
+            color:#fff;
+            flex-shrink:0;
+        }
+        .mso-badge.pro{ background:#ff4d4f; }
+        .mso-badge.free{ background:#2ecc71; }
+
+        /* ===== Footer ===== */
+        .mso-sidebar-footer{
+            position:fixed;
+            left:0;
+            bottom:0;
+            width:300px;
+            padding:12px 12px 10px 12px;
+            color:rgba(255,255,255,0.45);
+            font-size:11px;
+            border-top:1px solid rgba(255,255,255,0.08);
+            background:rgba(15,18,24,0.92);
+            backdrop-filter: blur(8px);
+        }
         </style>
         """,
+        unsafe_allow_html=True,
+    )
+
+    # 현재 페이지 동기화
+    current_page = get_page()
+
+    # 브랜드 타이틀
+    st.sidebar.markdown(
+        '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
+        unsafe_allow_html=True
+    )
+
+    # PRO login
+    if st.session_state.get('pro_authed', False):
+        st.sidebar.success('PRO 사용 가능')
+        if st.sidebar.button('로그아웃', key='pro_logout', use_container_width=True):
+            st.session_state['pro_authed'] = False
+            st.toast('로그아웃 되었습니다.')
+            st.rerun()
+    else:
+        code = st.sidebar.text_input('PRO 로그인 코드', type='password', key='pro_code_input')
+        if st.sidebar.button('로그인', key='pro_login', use_container_width=True):
+            import hashlib
+            c = (code or '').strip()
+            h = hashlib.sha256(c.encode('utf-8')).hexdigest()
+            if h in VALID_CODE_HASHES:
+                st.session_state['pro_authed'] = True
+                st.rerun()
+            else:
+                st.sidebar.error('코드가 올바르지 않습니다.')
+
+    st.sidebar.markdown('---')
+
+    # 메뉴 순서 유지
+    nav_html = ['<div class="mso-nav-wrap">']
+    for p in PAGES:
+        pid = p['id']
+        active_cls = "active" if pid == current_page else ""
+        badge_text = "PRO" if p.get("pro", False) else "FREE"
+        badge_cls = "pro" if p.get("pro", False) else "free"
+
+        nav_html.append(
+            f'''
+            <a class="mso-nav-item {active_cls}" href="?page={pid}">
+                <span class="mso-nav-label">{p["label"]}</span>
+                <span class="mso-badge {badge_cls}">{badge_text}</span>
+            </a>
+            '''
+        )
+    nav_html.append('</div>')
+
+    st.sidebar.markdown("".join(nav_html), unsafe_allow_html=True)
+
+    # footer
+    st.sidebar.markdown(
+        '<div class="mso-sidebar-footer">© 2026 misharpcompany. All rights reserved.</div>',
         unsafe_allow_html=True,
     )
 
