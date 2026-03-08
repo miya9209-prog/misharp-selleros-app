@@ -330,10 +330,10 @@ with st.sidebar:
     )
 
     current_page = get_page()
-    st.sidebar.markdown(
-        '<a class="mso-brand-link" href="?page=dashboard">MISHARP
-SELLER OS</a>',
-        unsafe_allow_html=True
+   st.sidebar.markdown(
+    '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
+    unsafe_allow_html=True
+)
     )
 
     # PRO login
