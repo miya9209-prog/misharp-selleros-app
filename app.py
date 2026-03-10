@@ -242,10 +242,8 @@ def run_embedded_app(app_key: str):
         sys.path = old_sys_path
 
 # -----------------------------
-
 # Sidebar Navigation
 # -----------------------------
-
 with st.sidebar:
     st.sidebar.markdown(
         textwrap.dedent("""
@@ -329,15 +327,13 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-current_page = get_page()
+    current_page = get_page()
 
-st.sidebar.markdown(
-    '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
-    unsafe_allow_html=True
-)
+    st.sidebar.markdown(
+        '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
+        unsafe_allow_html=True
+    )
 
-
-    # PRO login
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
         if st.sidebar.button('로그아웃', key='pro_logout', use_container_width=True):
@@ -380,39 +376,9 @@ st.sidebar.markdown(
 # -----------------------------
 # Dashboard (personal)
 # -----------------------------
-
-def dashboard():
-    # 사용자 개인 업무용 대시보드
-    import uuid
-    from datetime import datetime
-
-    # page_header() handles the title/subtitle
-
-    # --- state init ---
-    if "dash_shortcuts" not in st.session_state:
-        st.session_state.dash_shortcuts = [
-            {"id": str(uuid.uuid4()), "title": "미샵 관리자", "url": "https://misharp.co.kr", "emoji": "🛍️"},
-            {"id": str(uuid.uuid4()), "title": "카페24 관리자", "url": "https://eclogin.cafe24.com/Shop/", "emoji": "🧾"},
-        ]
-    if "dash_memo" not in st.session_state:
-        st.session_state.dash_memo = ""
-    if "dash_todos" not in st.session_state:
-        st.session_state.dash_todos = []  # [{"id":..., "text":..., "done": False}]
-
-    def _valid_url(url: str) -> bool:
-        url = (url or "").strip()
-        return url.startswith("http://") or url.startswith("https://")
-
-    # -----------------------------
-    # TOP: 오늘 / 오늘 메모 / 오늘 할일 (한 줄)
-    # -----------------------------
-    c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
-
-
 @st.cache_data(ttl=1800, show_spinner=False)
 def _fetch_weather_seoul_daily():
     from urllib.request import urlopen
-    from urllib.error import URLError
     lat, lon = 37.5665, 126.9780
     url = (
         "https://api.open-meteo.com/v1/forecast"
@@ -426,36 +392,71 @@ def _fetch_weather_seoul_daily():
             data = json.loads(r.read().decode("utf-8"))
     except Exception:
         return None
+
     daily = (data or {}).get("daily") or {}
     codes = daily.get("weathercode") or []
     tmaxs = daily.get("temperature_2m_max") or []
     tmins = daily.get("temperature_2m_min") or []
     if not codes or not tmaxs or not tmins:
         return None
-    code = int(codes[0]); tmax = round(float(tmaxs[0])); tmin = round(float(tmins[0]))
-    if code == 0: desc = "맑음"
-    elif code in (1,2,3): desc = "흐림"
-    elif code in (45,48): desc = "안개"
-    elif 71 <= code <= 77: desc = "눈"
-    elif 95 <= code <= 99: desc = "뇌우"
-    elif 80 <= code <= 82: desc = "소나기"
-    elif 51 <= code <= 67: desc = "비"
-    else: desc = "흐림"
+
+    code = int(codes[0])
+    tmax = round(float(tmaxs[0]))
+    tmin = round(float(tmins[0]))
+
+    if code == 0:
+        desc = "맑음"
+    elif code in (1, 2, 3):
+        desc = "흐림"
+    elif code in (45, 48):
+        desc = "안개"
+    elif 71 <= code <= 77:
+        desc = "눈"
+    elif 95 <= code <= 99:
+        desc = "뇌우"
+    elif 80 <= code <= 82:
+        desc = "소나기"
+    elif 51 <= code <= 67:
+        desc = "비"
+    else:
+        desc = "흐림"
+
     return desc, tmax, tmin
 
-with c1:
-    now = datetime.now()
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    dow_ko = ["월", "화", "수", "목", "금", "토", "일"][now.weekday()]
-    st.markdown("### 오늘")
-    st.markdown(f"**{now.strftime('%Y-%m-%d')}({dow_ko}) {now.strftime('%H:%M')}**")
-    w = _fetch_weather_seoul_daily()
-    if w:
-        desc, tmax, tmin = w
-        st.caption(f"{desc}  {tmax}° / {tmin}°")
-    else:
-        st.caption("날씨 정보를 불러오지 못했어요.")
-    st.markdown("</div>", unsafe_allow_html=True)
+
+def dashboard():
+    import uuid
+    from datetime import datetime
+
+    if "dash_shortcuts" not in st.session_state:
+        st.session_state.dash_shortcuts = [
+            {"id": str(uuid.uuid4()), "title": "미샵 관리자", "url": "https://misharp.co.kr", "emoji": ""},
+            {"id": str(uuid.uuid4()), "title": "카페24 관리자", "url": "https://eclogin.cafe24.com/Shop/", "emoji": ""},
+        ]
+    if "dash_memo" not in st.session_state:
+        st.session_state.dash_memo = ""
+    if "dash_todos" not in st.session_state:
+        st.session_state.dash_todos = []
+
+    def _valid_url(url: str) -> bool:
+        url = (url or "").strip()
+        return url.startswith("http://") or url.startswith("https://")
+
+    c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
+
+    with c1:
+        now = datetime.now()
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+        dow_ko = ["월", "화", "수", "목", "금", "토", "일"][now.weekday()]
+        st.markdown("### 오늘")
+        st.markdown(f"**{now.strftime('%Y-%m-%d')}({dow_ko}) {now.strftime('%H:%M')}**")
+        w = _fetch_weather_seoul_daily()
+        if w:
+            desc, tmax, tmin = w
+            st.caption(f"{desc}  {tmax}° / {tmin}°")
+        else:
+            st.caption("날씨 정보를 불러오지 못했어요.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
@@ -475,7 +476,12 @@ with c1:
 
         add_cols = st.columns([3, 1])
         with add_cols[0]:
-            new_todo = st.text_input("할일 추가", "", placeholder="예) 상세페이지 3개 생성", label_visibility="collapsed")
+            new_todo = st.text_input(
+                "할일 추가",
+                "",
+                placeholder="예) 상세페이지 3개 생성",
+                label_visibility="collapsed",
+            )
         with add_cols[1]:
             add_clicked = st.button("추가", key="todo_add", use_container_width=True)
 
@@ -485,21 +491,100 @@ with c1:
             )
             st.rerun()
 
-        # 리스트
         remove_ids = []
         for item in st.session_state.dash_todos:
             row = st.columns([0.12, 0.74, 0.14])
-            item["done"] = row[0].checkbox("", value=item.get("done", False), key=f"todo_done_{item['id']}")
+            item["done"] = row[0].checkbox(
+                "",
+                value=item.get("done", False),
+                key=f"todo_done_{item['id']}"
+            )
             row[1].markdown(item["text"])
             if row[2].button("삭제", key=f"todo_del_{item['id']}"):
                 remove_ids.append(item["id"])
+
         if remove_ids:
-            st.session_state.dash_todos = [t for t in st.session_state.dash_todos if t["id"] not in remove_ids]
+            st.session_state.dash_todos = [
+                t for t in st.session_state.dash_todos if t["id"] not in remove_ids
+            ]
             st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 바로가기")
+
+    shortcuts = st.session_state.dash_shortcuts
+    if not shortcuts:
+        st.info("아직 바로가기가 없습니다. 아래에서 추가해보세요.")
+    else:
+        cols = st.columns(4, gap="medium")
+        for i, sc in enumerate(shortcuts):
+            with cols[i % 4]:
+                st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
+                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+    with st.expander("바로가기 추가/편집", expanded=False):
+        st.markdown("**새 바로가기 추가**")
+
+        h = st.columns([2.2, 4.0, 1.2], gap="small")
+        h[0].markdown("제목")
+        h[1].markdown("URL")
+        h[2].markdown("&nbsp;", unsafe_allow_html=True)
+
+        row = st.columns([2.2, 4.0, 1.2], gap="small")
+        title = row[0].text_input(
+            "", "", key="sc_add_title",
+            placeholder="예) 미샵 관리자",
+            label_visibility="collapsed",
+        )
+        url = row[1].text_input(
+            "", "", key="sc_add_url",
+            placeholder="https://",
+            label_visibility="collapsed",
+        )
+        row[2].markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
+
+        if row[2].button("추가", key="shortcut_add", use_container_width=True):
+            if not title.strip():
+                st.error("제목을 입력해 주세요.")
+            elif not _valid_url(url):
+                st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
+            else:
+                st.session_state.dash_shortcuts.append(
+                    {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": ""}
+                )
+                st.success("추가되었습니다.")
+                st.rerun()
+
+        st.divider()
+        st.markdown("**기존 바로가기 관리**")
+        for sc in list(st.session_state.dash_shortcuts):
+            row = st.columns([2.2, 4.2, 1.2], gap="small")
+            new_title = row[0].text_input(
+                "제목", sc.get("title", ""),
+                key=f"sc_title_{sc['id']}",
+                label_visibility="collapsed",
+            )
+            new_url = row[1].text_input(
+                "URL", sc.get("url", ""),
+                key=f"sc_url_{sc['id']}",
+                label_visibility="collapsed",
+            )
+            if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+                st.session_state.dash_shortcuts = [
+                    x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]
+                ]
+                st.rerun()
+            sc["title"] = new_title
+            sc["url"] = new_url
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------
     # BOTTOM: 바로가기 (하단 배치)
