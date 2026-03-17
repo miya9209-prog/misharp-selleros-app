@@ -1,6 +1,7 @@
 
 import os, json, io, datetime, uuid, textwrap
 import streamlit as st
+import streamlit.components.v1 as components
 import runpy
 from pathlib import Path
 
@@ -75,14 +76,16 @@ VALID_CODE_HASHES = set([
 PRO_PAGE_IDS = {p['id'] for p in PAGES if p.get('pro')}
 PAGE_META = {p['id']: (p['label'], p.get('subtitle','')) for p in PAGES}
 
-if 'dash_shortcuts' not in st.session_state:
-    st.session_state['dash_shortcuts'] = []
-
 
 # -----------------------------
 # Page config (only once)
 # -----------------------------
 st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="expanded")
+
+if 'page' not in st.session_state:
+    st.session_state['page'] = 'dashboard'
+if 'nav_nonce' not in st.session_state:
+    st.session_state['nav_nonce'] = 0
 
 # -----------------------------
 # Global CSS (top padding fix + sidebar brand)
@@ -177,15 +180,14 @@ section[data-testid="stSidebar"] label { font-size: 15px; }
 # Helpers
 # -----------------------------
 def set_page(page_key: str):
-    st.session_state["page"] = page_key
+    valid_ids = {p["id"] for p in PAGES}
+    if page_key in valid_ids:
+        st.session_state["page"] = page_key
+        st.session_state["nav_nonce"] = st.session_state.get("nav_nonce", 0) + 1
 
 def get_page():
-    # Prefer query param (for sidebar HTML links), fall back to session state.
-    qp = st.query_params.get('page', None)
-    if isinstance(qp, list):
-        qp = qp[0] if qp else None
-    page = (qp or st.session_state.get('page') or 'dashboard').strip()
     valid_ids = {p['id'] for p in PAGES}
+    page = (st.session_state.get('page') or 'dashboard').strip()
     if page not in valid_ids:
         page = 'dashboard'
     st.session_state['page'] = page
@@ -201,6 +203,74 @@ def header(title: str, subtitle: str):
         """,
         unsafe_allow_html=True
     )
+
+
+def _usage_guide_html() -> str:
+    return """<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MISHARP SELLER OS 기능별 사용법</title>
+<style>
+body{margin:0;background:#08111f;color:#f3f4f6;font-family:'Nanum Gothic',Arial,sans-serif;line-height:1.7;}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 72px;}
+.hero,.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:24px;}
+.hero h1{font-size:42px;line-height:1.15;margin:0 0 12px;font-weight:800;}
+.hero p{margin:10px 0;color:rgba(255,255,255,.82);font-size:17px;}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:22px;}
+.card h2{margin:0 0 10px;font-size:24px;}
+.card h3{margin:16px 0 8px;font-size:16px;}
+.card ul,.card ol{margin:8px 0 0 20px;padding:0;}
+.card li{margin:4px 0;}
+.badge{display:inline-block;background:#ff4d4f;color:#fff;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-left:8px;}
+.free{background:#2ecc71;}
+.footer{margin-top:24px;color:rgba(255,255,255,.55);font-size:13px;text-align:center;}
+@media (max-width:860px){.grid{grid-template-columns:1fr;}.hero h1{font-size:34px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>기능별 사용법</h1>
+    <p>MISHARP SELLER OS를 처음 쓰는 분도 바로 작업할 수 있도록 각 기능의 입력 순서와 활용 팁을 한 페이지로 정리했습니다.</p>
+    <p>권장 흐름은 <b>상세페이지 → 상품설명 → SEO → 블로그 → 숏폼</b> 순서입니다. 같은 상품 정보를 재활용하면 작업 시간이 크게 줄어듭니다.</p>
+  </section>
+  <section class="grid">
+    <article class="card"><h2>대시보드 <span class="badge free">FREE</span></h2><ul><li>오늘 메모, 할 일, 바로가기를 한 화면에서 관리합니다.</li><li>자주 쓰는 관리자 페이지를 바로가기에 추가해 반복 클릭을 줄이세요.</li><li>작업 시작 전 오늘 할 일을 3개만 적어두면 동선이 정리됩니다.</li></ul></article>
+    <article class="card"><h2>상세페이지 생성 <span class="badge free">FREE</span></h2><ol><li>상품 이미지를 업로드합니다.</li><li>순서를 정리하고 광고/배너가 있으면 함께 반영합니다.</li><li>생성 결과를 저장해 상품 상세페이지에 바로 사용합니다.</li></ol><h3>팁</h3><ul><li>대표컷을 앞쪽에 두면 전환율이 좋습니다.</li><li>모바일 기준으로 먼저 체크하면 실사용 품질이 높습니다.</li></ul></article>
+    <article class="card"><h2>썸네일 생성 <span class="badge">PRO</span></h2><ul><li>상품 대표 이미지와 핵심 카피를 넣어 썸네일을 만듭니다.</li><li>텍스트는 짧고 강하게 작성하는 것이 좋습니다.</li><li>메인 포인트는 1개만 잡아야 클릭률이 올라갑니다.</li></ul></article>
+    <article class="card"><h2>GIF 생성 <span class="badge">PRO</span></h2><ul><li>연속 이미지나 짧은 영상으로 움직이는 상품 소개물을 만듭니다.</li><li>착용 전후, 핏 변화, 디테일 강조에 유리합니다.</li><li>속도가 너무 빠르면 정보 전달이 약해지니 미리보기로 확인하세요.</li></ul></article>
+    <article class="card"><h2>이미지 추출 생성 <span class="badge">PRO</span></h2><ul><li>상세페이지나 원본 이미지에서 필요한 컷만 추출할 때 사용합니다.</li><li>블로그, 숏폼, 배너용 재가공 소재 확보에 유용합니다.</li><li>추출 후 파일명을 정리해두면 이후 작업이 빨라집니다.</li></ul></article>
+    <article class="card"><h2>상품설명 생성 <span class="badge">PRO</span></h2><ol><li>상품명, 핵심 포인트, 소재, 핏, 추천 상황을 입력합니다.</li><li>상세설명/광고카피/짧은 소개문 중 필요한 형식을 고릅니다.</li><li>생성 후 미샵 톤에 맞게 한두 줄만 다듬어 바로 사용합니다.</li></ol></article>
+    <article class="card"><h2>SEO 생성 <span class="badge">PRO</span></h2><ul><li>상품 URL 또는 카테고리 URL을 넣어 SEO 요소를 분석합니다.</li><li>상품명, 메타 설명, 키워드, OG 정보 정리에 활용할 수 있습니다.</li><li>카테고리 페이지까지 함께 점검하면 검색 유입 관리가 수월합니다.</li></ul></article>
+    <article class="card"><h2>블로그 작성 <span class="badge">PRO</span></h2><ul><li>상품 또는 키워드를 기준으로 SEO 블로그 초안을 만듭니다.</li><li>고객 공감 문장, 착용 상황, 추천 포인트를 함께 넣으면 좋습니다.</li><li>발행 전 제목과 첫 300자만 꼭 직접 점검하세요.</li></ul></article>
+    <article class="card"><h2>숏폼 메이커 <span class="badge">PRO</span></h2><ul><li>릴스/숏츠용 후킹 문구, 장면 구성, 자막 초안을 만듭니다.</li><li>첫 3초 후킹과 마지막 CTA를 분명히 넣는 것이 중요합니다.</li><li>상품 장점은 1~2개만 잡고 짧게 반복하는 방식이 좋습니다.</li></ul></article>
+    <article class="card"><h2>추천 작업 루틴</h2><ol><li>상품 이미지 정리</li><li>상세페이지 생성</li><li>상품설명/SEO 생성</li><li>블로그 초안 작성</li><li>숏폼 대본 생성</li></ol><h3>운영 팁</h3><ul><li>한 상품을 여러 채널에 재활용하면 제작 효율이 높아집니다.</li><li>매주 잘 팔린 상품부터 같은 루틴으로 반복하세요.</li></ul></article>
+  </section>
+  <div class="footer">© 2026 MISHARP SELLER OS · 기능별 사용법 안내 페이지</div>
+</div>
+</body>
+</html>"""
+
+
+def render_usage_guide_button():
+    html_doc = _usage_guide_html()
+    payload = json.dumps(html_doc)
+    components.html(f"""
+    <div style='margin-top:8px;margin-bottom:8px;'>
+      <button id='mso-usage-btn' style='width:100%;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);color:#EDEDED;font-weight:700;cursor:pointer;'>기능별 사용법</button>
+    </div>
+    <script>
+    const htmlDoc = {payload};
+    const btn = document.getElementById('mso-usage-btn');
+    btn.addEventListener('click', function() {{
+      const blob = new Blob([htmlDoc], {{type:'text/html;charset=utf-8'}});
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    }});
+    </script>
+    """, height=58)
 
 
 
@@ -267,41 +337,38 @@ with st.sidebar:
             flex-direction:column;
             gap:10px;
             margin-top:8px;
-            margin-bottom:72px;
+            margin-bottom:12px;
         }
-        .mso-nav-item{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            text-decoration:none !important;
-            border:1px solid rgba(255,255,255,0.10);
-            border-radius:10px;
-            padding:12px 14px;
-            background:rgba(255,255,255,0.02);
+        .mso-nav-row{margin-bottom:10px;}
+        .mso-nav-row button{
+            display:flex !important;
+            align-items:center !important;
+            justify-content:space-between !important;
+            gap:10px !important;
+            width:100% !important;
+            border:1px solid rgba(255,255,255,0.10) !important;
+            border-radius:10px !important;
+            padding:12px 14px !important;
+            background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            transition:all .15s ease;
+            transition:all .15s ease !important;
+            min-height:46px !important;
+            font-size:15px !important;
+            font-weight:600 !important;
+            box-shadow:none !important;
         }
-        .mso-nav-item:hover{
-            background:rgba(255,255,255,0.06);
-            border-color:rgba(255,255,255,0.18);
+        .mso-nav-row button:hover{
+            background:rgba(255,255,255,0.06) !important;
+            border-color:rgba(255,255,255,0.18) !important;
+            color:#EDEDED !important;
         }
-        .mso-nav-item.active{
+        .mso-nav-row.active button{
             background:#ffffff !important;
             color:#0d1522 !important;
             border-color:#ffffff !important;
             margin-bottom:8px;
         }
-        .mso-nav-label{
-            flex:1;
-            text-align:left;
-            font-weight:600;
-            font-size:15px;
-            line-height:1.2;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-        }
+        .mso-nav-badge-wrap{display:flex;align-items:center;justify-content:flex-end;}
         .mso-badge{
             display:inline-flex;
             align-items:center;
@@ -316,6 +383,7 @@ with st.sidebar:
             line-height:1;
             white-space:nowrap;
             flex-shrink:0;
+            margin-top:10px;
         }
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
@@ -332,10 +400,9 @@ with st.sidebar:
 
     current_page = get_page()
 
-    st.sidebar.markdown(
-        '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
-        unsafe_allow_html=True
-    )
+    if st.sidebar.button("MISHARP SELLER OS", key="brand_home_btn", use_container_width=True):
+        set_page('dashboard')
+        st.rerun()
 
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
@@ -356,21 +423,24 @@ with st.sidebar:
                 st.sidebar.error('코드가 올바르지 않습니다.')
 
     st.sidebar.markdown('---')
-
-    nav_parts = ['<div class="mso-nav-wrap">']
+    st.sidebar.markdown('<div class="mso-nav-wrap">', unsafe_allow_html=True)
     for p in PAGES:
         pid = p['id']
         active_cls = 'active' if pid == current_page else ''
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
         badge_cls = 'pro' if p.get('pro', False) else 'free'
-        nav_parts.append(
-            f'<a class="mso-nav-item {active_cls}" href="?page={pid}">'
-            f'<span class="mso-nav-label">{p["label"]}</span>'
-            f'<span class="mso-badge {badge_cls}">{badge_text}</span>'
-            f'</a>'
-        )
-    nav_parts.append('</div>')
-    st.sidebar.markdown("".join(nav_parts), unsafe_allow_html=True)
+        c1, c2 = st.sidebar.columns([5.4, 1.2], gap='small')
+        with c1:
+            st.markdown(f'<div class="mso-nav-row {active_cls}">', unsafe_allow_html=True)
+            if st.button(p['label'], key=f'nav_{pid}', use_container_width=True):
+                set_page(pid)
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown(f'<div class="mso-nav-badge-wrap"><span class="mso-badge {badge_cls}">{badge_text}</span></div>', unsafe_allow_html=True)
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+    render_usage_guide_button()
 
     st.sidebar.markdown(
         '<div class="mso-sidebar-footer">© 2026 misharpcompany. All rights reserved.</div>',
@@ -589,160 +659,13 @@ def dashboard():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # -----------------------------
-    # BOTTOM: 바로가기 (하단 배치)
-    # -----------------------------
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown("### 바로가기")
-
-    # 보기: 카드 그리드
-    shortcuts = st.session_state.dash_shortcuts
-    if not shortcuts:
-        st.info("아직 바로가기가 없습니다. 아래에서 추가해보세요.")
-    else:
-        cols = st.columns(4, gap="medium")
-        for i, sc in enumerate(shortcuts):
-            with cols[i % 4]:
-                st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 
 
-
-def render_copy_page():
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown("### 상품 핵심 정보 입력")
-    c1, c2 = st.columns(2, gap="medium")
-    product_name = c1.text_input("상품명", key="copy_product_name", placeholder="예) 몬트 A라인 사파리 자켓")
-    target = c2.text_input("타겟 고객", key="copy_target", placeholder="예) 4050 여성 / 출근룩 / 체형커버")
-    c3, c4 = st.columns(2, gap="medium")
-    tone = c3.selectbox("문체", ["전문적이지만 대중적인 말투", "친근한 판매형 말투", "차분한 프리미엄 말투"], key="copy_tone")
-    use_case = c4.text_input("추천 상황", key="copy_use_case", placeholder="예) 출근룩, 학모룩, 주말모임")
-    points = st.text_area(
-        "핵심 포인트",
-        key="copy_points",
-        height=160,
-        placeholder="예)\n- 원단이 부드럽고 관리가 편함\n- 군살 커버되는 여유핏\n- 슬랙스/스커트 모두 매칭 쉬움",
-    )
-    banned = st.text_input("금칙어/제외어", key="copy_banned", placeholder="예) 최저가, 무조건, 완벽")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-    if st.button("상품설명 생성", key="generate_copy", use_container_width=True):
-        bullets = [x.strip('-• ').strip() for x in points.splitlines() if x.strip()]
-        if not product_name.strip() or not bullets:
-            st.error("상품명과 핵심 포인트를 입력해 주세요.")
-        else:
-            reason = bullets[0] if len(bullets) > 0 else "상품 강점"
-            fabric = bullets[1] if len(bullets) > 1 else bullets[0]
-            fit = bullets[2] if len(bullets) > 2 else bullets[-1]
-            styling = bullets[3] if len(bullets) > 3 else (use_case or "데일리 스타일링")
-            banned_text = banned.strip() or "없음"
-            result = (
-                f"{product_name}\n"
-                f"[이 상품을 초이스한 이유입니다.]\n"
-                f"{product_name}는 {reason}에 집중해 선택한 아이템입니다.\n"
-                f"{target or '미샵 고객'}에게 특히 잘 맞는 포인트를 중심으로\n"
-                f"실제로 손이 자주 가는 상품 설명이 되도록 정리했습니다.\n\n"
-                f"[원단을 가장 먼저 봅니다.]\n"
-                f"{product_name}는 {fabric} 강점이 돋보입니다.\n"
-                f"사진만으로는 잘 보이지 않는 착용감과 관리 편의성까지\n"
-                f"구매 전 바로 이해할 수 있게 전달하는 데 초점을 맞췄습니다.\n\n"
-                f"[체형과 핏에 대하여]\n"
-                f"{fit} 느낌을 중심으로\n"
-                f"부담 없이 입기 좋고, 과하게 꾸민 느낌 없이\n"
-                f"단정하고 세련된 인상을 주도록 설명하면 좋습니다.\n\n"
-                f"[이렇게 활용해 보세요.]\n"
-                f"{styling} 상황에 자연스럽게 연결해 제안하면 전환율에 유리합니다.\n"
-                f"문체 가이드: {tone}\n"
-                f"금칙어: {banned_text}\n"
-            )
-            st.session_state['generated_copy_text'] = result
-            st.session_state['generated_copy_meta'] = {
-                'product_name': product_name,
-                'target': target,
-                'tone': tone,
-                'use_case': use_case,
-                'banned': banned_text,
-            }
-
-    if st.session_state.get('generated_copy_text'):
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.markdown("### 생성 결과")
-        st.text_area("생성 결과", value=st.session_state['generated_copy_text'], height=420, key="copy_result_box")
-        st.download_button(
-            "TXT 다운로드",
-            data=st.session_state['generated_copy_text'].encode('utf-8'),
-            file_name=f"copy_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            use_container_width=True,
-            key="copy_download",
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_shortform_page():
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown("### 숏폼 기획 입력")
-    c1, c2 = st.columns(2, gap="medium")
-    product_name = c1.text_input("상품명", key="sf_product_name", placeholder="예) 어반 실버 포인트 긴팔 셔츠")
-    audience = c2.text_input("타겟", key="sf_audience", placeholder="예) 4050 여성 / 출근룩 / 학교방문룩")
-    c3, c4 = st.columns(2, gap="medium")
-    angle = c3.text_input("콘텐츠 각도", key="sf_angle", placeholder="예) 첫인상 좋아 보이는 코디")
-    duration = c4.selectbox("길이", ["15초", "20초", "30초"], key="sf_duration")
-    features = st.text_area(
-        "핵심 포인트",
-        key="sf_features",
-        height=160,
-        placeholder="예)\n- 차르르 흐르는 실키 터치감\n- 군살 커버되는 여유핏\n- 단정하면서도 세련된 분위기",
-    )
-    cta = st.text_input("마무리 CTA", key="sf_cta", placeholder="예) 지금 미샵에서 만나보세요")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-    if st.button("숏폼 구성 생성", key="generate_shortform", use_container_width=True):
-        pts = [x.strip('-• ').strip() for x in features.splitlines() if x.strip()]
-        if not product_name.strip() or not pts:
-            st.error("상품명과 핵심 포인트를 입력해 주세요.")
-        else:
-            hook = angle.strip() or f"{product_name} 코디 포인트"
-            p1 = pts[0]
-            p2 = pts[1] if len(pts) > 1 else pts[0]
-            p3 = pts[2] if len(pts) > 2 else pts[-1]
-            result = (
-                f"헤드라인 : {hook}\n\n"
-                f"오프닝\n{audience or '이런 코디 고민 있으셨죠'}\n\n"
-                f"본문 1\n{product_name}\n{p1}\n\n"
-                f"본문 2\n{p2}\n\n"
-                f"본문 3\n{p3}\n\n"
-                f"클로징\n{cta or '지금 미샵에서 만나보세요'}\n\n"
-                f"추천 자막 흐름 ({duration})\n"
-                f"1. 고민 제시\n2. 상품 포인트 1\n3. 상품 포인트 2\n4. 스타일링/상황 제안\n5. CTA\n\n"
-                f"추천 해시태그\n#미샵 #{product_name.replace(' ', '')} #4050여성코디 #데일리룩 #중년패션\n"
-            )
-            st.session_state['generated_shortform_text'] = result
-
-    if st.session_state.get('generated_shortform_text'):
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-        st.markdown("### 생성 결과")
-        st.text_area("생성 결과", value=st.session_state['generated_shortform_text'], height=420, key="shortform_result_box")
-        st.download_button(
-            "TXT 다운로드",
-            data=st.session_state['generated_shortform_text'].encode('utf-8'),
-            file_name=f"shortform_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            use_container_width=True,
-            key="shortform_download",
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
 # -----------------------------
 # Pages
-page = st.session_state.get('page') or get_page()
-st.session_state['page'] = page
+page = get_page()
 
 # Header (title + one-line description)
 title, subtitle = PAGE_META.get(page, ('', ''))
@@ -765,13 +688,63 @@ elif page == 'gif':
 elif page == 'image_crop':
     run_embedded_app('image_crop')
 elif page == 'copy':
-    render_copy_page()
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 상품설명 생성")
+    product_name = st.text_input("상품명", placeholder="예) 어반 실버 포인트 긴팔 셔츠")
+    one_line = st.text_input("한 줄 핵심", placeholder="예) 차르르 흐르는 실키한 원단감의 단정한 셔츠")
+    material = st.text_input("소재", placeholder="예) 폴리에스터 100% / 실키 가공")
+    fit_point = st.text_input("핏/체형 포인트", placeholder="예) 여유핏으로 상체 커버, 단정한 아웃핏")
+    use_scene = st.text_input("추천 상황", placeholder="예) 출근룩, 모임룩, 학모룩")
+    if st.button("설명문 생성", use_container_width=True):
+        if not product_name.strip():
+            st.warning("상품명을 입력해 주세요.")
+        else:
+            desc = f"""{product_name}
+
+[{product_name}를 추천하는 이유]
+{one_line or '상품의 핵심 장점을 중심으로 고객이 바로 이해할 수 있도록 정리했습니다.'}
+
+[원단 포인트]
+{material or '소재 정보 입력 시 더 정확한 설명문을 만들 수 있습니다.'}
+
+[핏과 체형 포인트]
+{fit_point or '핏과 체형 보완 포인트를 넣으면 설득력이 높아집니다.'}
+
+[이렇게 추천합니다]
+{use_scene or '출근룩, 데일리룩, 모임룩 등 활용 상황을 함께 제안해 보세요.'}
+"""
+            st.text_area("생성 결과", value=desc, height=320)
+    st.markdown('</div>', unsafe_allow_html=True)
 elif page == 'seo':
     run_embedded_app('seo')
 elif page == 'blog':
     run_embedded_app('blog')
 elif page == 'shortform':
-    render_shortform_page()
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 숏폼 메이커")
+    topic = st.text_input("주제/상품명", placeholder="예) 학교방문룩 자켓 코디")
+    hook = st.text_input("후킹 포인트", placeholder="예) 첫인상 좋아 보이는 코디")
+    target = st.text_input("타깃", placeholder="예) 4050 여성 / 학모룩 고객")
+    cta = st.text_input("마무리 CTA", placeholder="예) 지금 미샵에서 만나보세요")
+    if st.button("숏폼 초안 생성", use_container_width=True):
+        if not topic.strip():
+            st.warning("주제 또는 상품명을 입력해 주세요.")
+        else:
+            script = f"""[15초 숏폼 초안]
+1컷 후킹: {hook or topic + ' 고민 끝'}
+2컷 공감: {target or '타깃 고객'}에게 필요한 포인트를 짧게 전달
+3컷 제안: {topic}의 장점 1~2개 강조
+4컷 CTA: {cta or '프로필 링크에서 확인해 보세요'}
+
+[자막 예시]
+{hook or topic}
+너무 꾸민 느낌 말고
+단정하고 깔끔하게
+이럴 때 딱 좋은 코디
+{cta or '지금 확인해 보세요'}
+"""
+            st.text_area("생성 결과", value=script, height=260)
+    st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info('준비 중인 페이지입니다.')
 

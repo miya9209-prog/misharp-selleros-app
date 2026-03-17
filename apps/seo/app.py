@@ -12,6 +12,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
+# Embedded in seller OS; page config is handled by parent app.
+
 AUTHOR_DEFAULT = "MISHARP 미샵"
 BRAND_NAME = "미샵 MISHARP"
 
@@ -765,7 +767,7 @@ def copyable_output(label: str, value: str, key: str, height: int = 68) -> None:
     component_html = f"""
     <div style="margin:0 0 10px 0;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div style="font-size:14px;font-weight:700;color:#f3f4f6;">{safe_label}</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;">{safe_label}</div>
         <button onclick="navigator.clipboard.writeText(document.getElementById('{key}').innerText);this.innerText='✓ 복사됨';setTimeout(()=>this.innerText='복사',1400);"
           style="font-size:12px;padding:4px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;cursor:pointer;">복사</button>
       </div>
@@ -839,10 +841,15 @@ def render_why_seo_matters() -> None:
         - 검색엔진이 상품 페이지 내용을 더 정확히 이해하도록 도와줍니다.
         - 네이버, 구글, 쇼핑 검색에서 노출될 가능성을 높여줍니다.
         - 광고 없이도 장기적으로 유입을 쌓을 수 있는 기반이 됩니다.
-        - 상품 수가 많은 쇼핑몰일수록 누적 효과가 커집니다.
+        - 미샵처럼 상품 수가 많은 쇼핑몰일수록 누적 효과가 커집니다.
         - title, description, keywords, alt를 꾸준히 입력하면 쇼핑몰 전체의 전문성이 강화됩니다.
 
-               """
+        **미샵에서는 이렇게 생각하시면 됩니다.**
+
+        상품을 등록할 때 SEO를 함께 정리해두면  
+        단순히 한 상품만을 위한 작업이 아니라,  
+        **미샵 전체가 4050 여성 패션 전문 쇼핑몰로 인식되도록 만드는 누적 작업**이 됩니다.
+        """
     )
 
 
@@ -993,7 +1000,7 @@ def main() -> None:
                 if "429" in error_text and "smartstore.naver.com" in url:
                     st.warning(
                         "스마트스토어는 네이버 차단 정책으로 인해 현재 분석이 제한될 수 있습니다. "
-                        "잠시 후 다시 시도하거나, 가능하면 자사몰 URL로 분석해주세요."
+                        "잠시 후 다시 시도하거나, 가능하면 미샵 자사몰 URL로 분석해주세요."
                     )
                 else:
                     st.error(f"페이지 요청 중 오류가 발생했습니다: {e}")
@@ -1073,7 +1080,7 @@ def main() -> None:
                 """
                 - 카테고리 페이지나 상품 목록 페이지를 넣으면 상품 링크를 자동 수집합니다.
                 - 수집된 상품을 한 번에 분석해 표와 CSV로 내려받을 수 있습니다.
-                - 자사몰 카테고리 SEO 정비용으로 특히 유용합니다.
+                - 미샵 자사몰 카테고리 SEO 정비용으로 특히 유용합니다.
                 """
             )
 
@@ -1128,4 +1135,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
+
+
+
+def render() -> None:
     main()
