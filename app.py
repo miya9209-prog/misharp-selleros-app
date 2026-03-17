@@ -75,6 +75,9 @@ VALID_CODE_HASHES = set([
 PRO_PAGE_IDS = {p['id'] for p in PAGES if p.get('pro')}
 PAGE_META = {p['id']: (p['label'], p.get('subtitle','')) for p in PAGES}
 
+if 'dash_shortcuts' not in st.session_state:
+    st.session_state['dash_shortcuts'] = []
+
 
 # -----------------------------
 # Page config (only once)
@@ -607,43 +610,134 @@ def dashboard():
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 
-with st.expander("바로가기 추가/편집", expanded=False):
-    st.markdown("**새 바로가기 추가**")
 
-    h = st.columns([2.2, 4.0, 1.2], gap="small")
-    h[0].markdown("제목")
-    h[1].markdown("URL")
-    h[2].markdown("&nbsp;", unsafe_allow_html=True)
 
-    row = st.columns([2.2, 4.0, 1.2], gap="small")
-    title = row[0].text_input("", "", key="sc_add_title", placeholder="예) 미샵 관리자", label_visibility="collapsed")
-    url = row[1].text_input("", "", key="sc_add_url", placeholder="https://", label_visibility="collapsed")
-    row[2].markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
-    if row[2].button("추가", key="shortcut_add", use_container_width=True):
-        if not title.strip():
-            st.error("제목을 입력해 주세요.")
-        elif not _valid_url(url):
-            st.error("URL은 http:// 또는 https:// 로 시작해야 합니다.")
+def render_copy_page():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 상품 핵심 정보 입력")
+    c1, c2 = st.columns(2, gap="medium")
+    product_name = c1.text_input("상품명", key="copy_product_name", placeholder="예) 몬트 A라인 사파리 자켓")
+    target = c2.text_input("타겟 고객", key="copy_target", placeholder="예) 4050 여성 / 출근룩 / 체형커버")
+    c3, c4 = st.columns(2, gap="medium")
+    tone = c3.selectbox("문체", ["전문적이지만 대중적인 말투", "친근한 판매형 말투", "차분한 프리미엄 말투"], key="copy_tone")
+    use_case = c4.text_input("추천 상황", key="copy_use_case", placeholder="예) 출근룩, 학모룩, 주말모임")
+    points = st.text_area(
+        "핵심 포인트",
+        key="copy_points",
+        height=160,
+        placeholder="예)\n- 원단이 부드럽고 관리가 편함\n- 군살 커버되는 여유핏\n- 슬랙스/스커트 모두 매칭 쉬움",
+    )
+    banned = st.text_input("금칙어/제외어", key="copy_banned", placeholder="예) 최저가, 무조건, 완벽")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+    if st.button("상품설명 생성", key="generate_copy", use_container_width=True):
+        bullets = [x.strip('-• ').strip() for x in points.splitlines() if x.strip()]
+        if not product_name.strip() or not bullets:
+            st.error("상품명과 핵심 포인트를 입력해 주세요.")
         else:
-            st.session_state.dash_shortcuts.append(
-                {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": ""}
+            reason = bullets[0] if len(bullets) > 0 else "상품 강점"
+            fabric = bullets[1] if len(bullets) > 1 else bullets[0]
+            fit = bullets[2] if len(bullets) > 2 else bullets[-1]
+            styling = bullets[3] if len(bullets) > 3 else (use_case or "데일리 스타일링")
+            banned_text = banned.strip() or "없음"
+            result = (
+                f"{product_name}\n"
+                f"[이 상품을 초이스한 이유입니다.]\n"
+                f"{product_name}는 {reason}에 집중해 선택한 아이템입니다.\n"
+                f"{target or '미샵 고객'}에게 특히 잘 맞는 포인트를 중심으로\n"
+                f"실제로 손이 자주 가는 상품 설명이 되도록 정리했습니다.\n\n"
+                f"[원단을 가장 먼저 봅니다.]\n"
+                f"{product_name}는 {fabric} 강점이 돋보입니다.\n"
+                f"사진만으로는 잘 보이지 않는 착용감과 관리 편의성까지\n"
+                f"구매 전 바로 이해할 수 있게 전달하는 데 초점을 맞췄습니다.\n\n"
+                f"[체형과 핏에 대하여]\n"
+                f"{fit} 느낌을 중심으로\n"
+                f"부담 없이 입기 좋고, 과하게 꾸민 느낌 없이\n"
+                f"단정하고 세련된 인상을 주도록 설명하면 좋습니다.\n\n"
+                f"[이렇게 활용해 보세요.]\n"
+                f"{styling} 상황에 자연스럽게 연결해 제안하면 전환율에 유리합니다.\n"
+                f"문체 가이드: {tone}\n"
+                f"금칙어: {banned_text}\n"
             )
-            st.success("추가되었습니다.")
-            st.rerun()
+            st.session_state['generated_copy_text'] = result
+            st.session_state['generated_copy_meta'] = {
+                'product_name': product_name,
+                'target': target,
+                'tone': tone,
+                'use_case': use_case,
+                'banned': banned_text,
+            }
 
-    st.divider()
-    st.markdown("**기존 바로가기 관리**")
-    for sc in list(st.session_state.dash_shortcuts):
-        row = st.columns([2.2, 4.2, 1.2], gap="small")
-        new_title = row[0].text_input("제목", sc.get("title", ""), key=f"sc_title_{sc['id']}", label_visibility="collapsed")
-        new_url = row[1].text_input("URL", sc.get("url", ""), key=f"sc_url_{sc['id']}", label_visibility="collapsed")
-        if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
-            st.session_state.dash_shortcuts = [x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]]
-            st.rerun()
-        sc["title"] = new_title
-        sc["url"] = new_url
+    if st.session_state.get('generated_copy_text'):
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+        st.markdown("### 생성 결과")
+        st.text_area("생성 결과", value=st.session_state['generated_copy_text'], height=420, key="copy_result_box")
+        st.download_button(
+            "TXT 다운로드",
+            data=st.session_state['generated_copy_text'].encode('utf-8'),
+            file_name=f"copy_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="copy_download",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
+
+def render_shortform_page():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("### 숏폼 기획 입력")
+    c1, c2 = st.columns(2, gap="medium")
+    product_name = c1.text_input("상품명", key="sf_product_name", placeholder="예) 어반 실버 포인트 긴팔 셔츠")
+    audience = c2.text_input("타겟", key="sf_audience", placeholder="예) 4050 여성 / 출근룩 / 학교방문룩")
+    c3, c4 = st.columns(2, gap="medium")
+    angle = c3.text_input("콘텐츠 각도", key="sf_angle", placeholder="예) 첫인상 좋아 보이는 코디")
+    duration = c4.selectbox("길이", ["15초", "20초", "30초"], key="sf_duration")
+    features = st.text_area(
+        "핵심 포인트",
+        key="sf_features",
+        height=160,
+        placeholder="예)\n- 차르르 흐르는 실키 터치감\n- 군살 커버되는 여유핏\n- 단정하면서도 세련된 분위기",
+    )
+    cta = st.text_input("마무리 CTA", key="sf_cta", placeholder="예) 지금 미샵에서 만나보세요")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+    if st.button("숏폼 구성 생성", key="generate_shortform", use_container_width=True):
+        pts = [x.strip('-• ').strip() for x in features.splitlines() if x.strip()]
+        if not product_name.strip() or not pts:
+            st.error("상품명과 핵심 포인트를 입력해 주세요.")
+        else:
+            hook = angle.strip() or f"{product_name} 코디 포인트"
+            p1 = pts[0]
+            p2 = pts[1] if len(pts) > 1 else pts[0]
+            p3 = pts[2] if len(pts) > 2 else pts[-1]
+            result = (
+                f"헤드라인 : {hook}\n\n"
+                f"오프닝\n{audience or '이런 코디 고민 있으셨죠'}\n\n"
+                f"본문 1\n{product_name}\n{p1}\n\n"
+                f"본문 2\n{p2}\n\n"
+                f"본문 3\n{p3}\n\n"
+                f"클로징\n{cta or '지금 미샵에서 만나보세요'}\n\n"
+                f"추천 자막 흐름 ({duration})\n"
+                f"1. 고민 제시\n2. 상품 포인트 1\n3. 상품 포인트 2\n4. 스타일링/상황 제안\n5. CTA\n\n"
+                f"추천 해시태그\n#미샵 #{product_name.replace(' ', '')} #4050여성코디 #데일리룩 #중년패션\n"
+            )
+            st.session_state['generated_shortform_text'] = result
+
+    if st.session_state.get('generated_shortform_text'):
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+        st.markdown("### 생성 결과")
+        st.text_area("생성 결과", value=st.session_state['generated_shortform_text'], height=420, key="shortform_result_box")
+        st.download_button(
+            "TXT 다운로드",
+            data=st.session_state['generated_shortform_text'].encode('utf-8'),
+            file_name=f"shortform_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="shortform_download",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------
 # Pages
@@ -671,13 +765,13 @@ elif page == 'gif':
 elif page == 'image_crop':
     run_embedded_app('image_crop')
 elif page == 'copy':
-    st.info('상품설명 생성은 **다음 단계에서** 탑재합니다. (PRO 전용)')
+    render_copy_page()
 elif page == 'seo':
     run_embedded_app('seo')
 elif page == 'blog':
     run_embedded_app('blog')
 elif page == 'shortform':
-    st.info('숏폼 메이커는 **다음 단계에서** 탑재합니다. (PRO 전용)')
+    render_shortform_page()
 else:
     st.info('준비 중인 페이지입니다.')
 
