@@ -183,14 +183,19 @@ def set_page(page_key: str):
     valid_ids = {p["id"] for p in PAGES}
     if page_key in valid_ids:
         st.session_state["page"] = page_key
+        st.query_params["page"] = page_key
         st.session_state["nav_nonce"] = st.session_state.get("nav_nonce", 0) + 1
 
 def get_page():
     valid_ids = {p['id'] for p in PAGES}
-    page = (st.session_state.get('page') or 'dashboard').strip()
+    qp = st.query_params.get("page", None)
+    if isinstance(qp, list):
+        qp = qp[0] if qp else None
+    page = (qp or st.session_state.get('page') or 'dashboard').strip()
     if page not in valid_ids:
         page = 'dashboard'
     st.session_state['page'] = page
+    st.query_params["page"] = page
     return page
 
 def header(title: str, subtitle: str):
@@ -339,36 +344,39 @@ with st.sidebar:
             margin-top:8px;
             margin-bottom:12px;
         }
-        .mso-nav-row{margin-bottom:10px;}
-        .mso-nav-row button{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:space-between !important;
-            gap:10px !important;
-            width:100% !important;
-            border:1px solid rgba(255,255,255,0.10) !important;
-            border-radius:10px !important;
-            padding:12px 14px !important;
-            background:rgba(255,255,255,0.02) !important;
+        .mso-nav-item{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            text-decoration:none !important;
+            border:1px solid rgba(255,255,255,0.10);
+            border-radius:10px;
+            padding:12px 14px;
+            background:rgba(255,255,255,0.02);
             color:#EDEDED !important;
-            transition:all .15s ease !important;
-            min-height:46px !important;
-            font-size:15px !important;
-            font-weight:600 !important;
-            box-shadow:none !important;
+            transition:all .15s ease;
         }
-        .mso-nav-row button:hover{
-            background:rgba(255,255,255,0.06) !important;
-            border-color:rgba(255,255,255,0.18) !important;
-            color:#EDEDED !important;
+        .mso-nav-item:hover{
+            background:rgba(255,255,255,0.06);
+            border-color:rgba(255,255,255,0.18);
         }
-        .mso-nav-row.active button{
+        .mso-nav-item.active{
             background:#ffffff !important;
             color:#0d1522 !important;
             border-color:#ffffff !important;
             margin-bottom:8px;
         }
-        .mso-nav-badge-wrap{display:flex;align-items:center;justify-content:flex-end;}
+        .mso-nav-label{
+            flex:1;
+            text-align:left;
+            font-weight:600;
+            font-size:15px;
+            line-height:1.2;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
         .mso-badge{
             display:inline-flex;
             align-items:center;
@@ -383,7 +391,6 @@ with st.sidebar:
             line-height:1;
             white-space:nowrap;
             flex-shrink:0;
-            margin-top:10px;
         }
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
@@ -400,9 +407,10 @@ with st.sidebar:
 
     current_page = get_page()
 
-    if st.sidebar.button("MISHARP SELLER OS", key="brand_home_btn", use_container_width=True):
-        set_page('dashboard')
-        st.rerun()
+    st.sidebar.markdown(
+        '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
+        unsafe_allow_html=True
+    )
 
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
@@ -423,22 +431,21 @@ with st.sidebar:
                 st.sidebar.error('코드가 올바르지 않습니다.')
 
     st.sidebar.markdown('---')
-    st.sidebar.markdown('<div class="mso-nav-wrap">', unsafe_allow_html=True)
+
+    nav_parts = ['<div class="mso-nav-wrap">']
     for p in PAGES:
         pid = p['id']
         active_cls = 'active' if pid == current_page else ''
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
         badge_cls = 'pro' if p.get('pro', False) else 'free'
-        c1, c2 = st.sidebar.columns([5.4, 1.2], gap='small')
-        with c1:
-            st.markdown(f'<div class="mso-nav-row {active_cls}">', unsafe_allow_html=True)
-            if st.button(p['label'], key=f'nav_{pid}', use_container_width=True):
-                set_page(pid)
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div class="mso-nav-badge-wrap"><span class="mso-badge {badge_cls}">{badge_text}</span></div>', unsafe_allow_html=True)
-    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+        nav_parts.append(
+            f'<a class="mso-nav-item {active_cls}" href="?page={pid}">'
+            f'<span class="mso-nav-label">{p["label"]}</span>'
+            f'<span class="mso-badge {badge_cls}">{badge_text}</span>'
+            f'</a>'
+        )
+    nav_parts.append('</div>')
+    st.sidebar.markdown("".join(nav_parts), unsafe_allow_html=True)
 
     render_usage_guide_button()
 
