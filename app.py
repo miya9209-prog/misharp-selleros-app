@@ -172,27 +172,8 @@ section[data-testid="stSidebar"] label { font-size: 15px; }
   font-weight:700 !important;
 }
 .ms-shortcut-card a:hover { background:rgba(255,255,255,0.08) !important; }
-
-
-.mso-shortcut-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px 16px;
-}
-.mso-shortcut-link{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  min-height:38px !important;
-  border-radius:10px !important;
-  border:1px solid rgba(255,255,255,0.14) !important;
-  background:rgba(255,255,255,0.02) !important;
-  color:rgba(255,255,255,0.95) !important;
-  text-decoration:none !important;
-  font-weight:700 !important;
-}
-.mso-shortcut-link:hover{ background:rgba(255,255,255,0.08) !important; }
-@media (max-width: 980px){ .mso-shortcut-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; } }
+.ms-shortcut-card{margin-bottom:-8px !important;}
+.ms-shortcut-card + .ms-shortcut-card{margin-top:0 !important;}
 
 </style>
 """, unsafe_allow_html=True)
@@ -204,14 +185,19 @@ def set_page(page_key: str):
     valid_ids = {p["id"] for p in PAGES}
     if page_key in valid_ids:
         st.session_state["page"] = page_key
+        st.query_params["page"] = page_key
         st.session_state["nav_nonce"] = st.session_state.get("nav_nonce", 0) + 1
 
 def get_page():
     valid_ids = {p['id'] for p in PAGES}
-    page = (st.session_state.get('page') or 'dashboard').strip()
+    qp = st.query_params.get("page", None)
+    if isinstance(qp, list):
+        qp = qp[0] if qp else None
+    page = (qp or st.session_state.get('page') or 'dashboard').strip()
     if page not in valid_ids:
         page = 'dashboard'
     st.session_state['page'] = page
+    st.query_params["page"] = page
     return page
 
 def header(title: str, subtitle: str):
@@ -347,10 +333,10 @@ with st.sidebar:
             text-decoration:none !important;
             color:#EDEDED !important;
             font-weight:900 !important;
-            font-size:54px !important;
+            font-size:25px !important;
             letter-spacing:0.6px !important;
-            line-height:0.96;
-            margin:10px 0 22px 0;
+            line-height:0.98;
+            margin:6px 0 14px 0;
             white-space:pre-line;
         }
         .mso-nav-wrap{
@@ -424,7 +410,7 @@ with st.sidebar:
     current_page = get_page()
 
     st.sidebar.markdown(
-        '<a class="mso-brand-link" href="?">MISHARP\nSELLER OS</a>',
+        '<a class="mso-brand-link" href="?page=dashboard">MISHARP<br>SELLER OS</a>',
         unsafe_allow_html=True
     )
 
@@ -589,7 +575,7 @@ def dashboard():
 
         remove_ids = []
         for item in st.session_state.dash_todos:
-            row = st.columns([0.10, 0.64, 0.26])
+            row = st.columns([0.12, 0.74, 0.14])
             item["done"] = row[0].checkbox(
                 "",
                 value=item.get("done", False),
@@ -616,15 +602,14 @@ def dashboard():
     if not shortcuts:
         st.info("아직 바로가기가 없습니다. 아래에서 추가해보세요.")
     else:
-        shortcut_html = ['<div class="mso-shortcut-grid">']
-        for sc in shortcuts:
-            title = (sc.get("title") or "바로가기").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            url = sc.get("url", "")
-            shortcut_html.append(f'<a class="mso-shortcut-link" href="{url}" target="_self">{title}</a>')
-        shortcut_html.append('</div>')
-        st.markdown("".join(shortcut_html), unsafe_allow_html=True)
+        cols = st.columns(4, gap="small")
+        for i, sc in enumerate(shortcuts):
+            with cols[i % 4]:
+                st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
+                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
@@ -645,8 +630,6 @@ def dashboard():
             placeholder="https://",
             label_visibility="collapsed",
         )
-        row[2].markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
-
         if row[2].button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
@@ -662,15 +645,22 @@ def dashboard():
         st.divider()
         st.markdown("**기존 바로가기 관리**")
         for idx, sc in enumerate(list(st.session_state.dash_shortcuts)):
-            row = st.columns([0.65, 0.65, 2.0, 4.0, 1.1], gap="small")
-            if row[0].button("←", key=f"sc_left_{sc['id']}", use_container_width=True, disabled=(idx == 0)):
-                items = st.session_state.dash_shortcuts
-                items[idx-1], items[idx] = items[idx], items[idx-1]
+            row = st.columns([0.7, 0.7, 2.0, 4.0, 1.2], gap="small")
+
+            if row[0].button("↑", key=f"sc_up_{sc['id']}", use_container_width=True, disabled=(idx == 0)):
+                st.session_state.dash_shortcuts[idx - 1], st.session_state.dash_shortcuts[idx] = (
+                    st.session_state.dash_shortcuts[idx],
+                    st.session_state.dash_shortcuts[idx - 1],
+                )
                 st.rerun()
-            if row[1].button("→", key=f"sc_right_{sc['id']}", use_container_width=True, disabled=(idx == len(st.session_state.dash_shortcuts)-1)):
-                items = st.session_state.dash_shortcuts
-                items[idx], items[idx+1] = items[idx+1], items[idx]
+
+            if row[1].button("↓", key=f"sc_down_{sc['id']}", use_container_width=True, disabled=(idx == len(st.session_state.dash_shortcuts) - 1)):
+                st.session_state.dash_shortcuts[idx + 1], st.session_state.dash_shortcuts[idx] = (
+                    st.session_state.dash_shortcuts[idx],
+                    st.session_state.dash_shortcuts[idx + 1],
+                )
                 st.rerun()
+
             new_title = row[2].text_input(
                 "제목", sc.get("title", ""),
                 key=f"sc_title_{sc['id']}",
@@ -686,6 +676,7 @@ def dashboard():
                     x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]
                 ]
                 st.rerun()
+
             sc["title"] = new_title
             sc["url"] = new_url
 
