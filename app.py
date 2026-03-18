@@ -180,10 +180,11 @@ section[data-testid="stSidebar"] label { font-size: 15px; }
 # Helpers
 # -----------------------------
 def set_page(page_key: str):
-    valid_ids = {p['id'] for p in PAGES}
+    valid_ids = {p["id"] for p in PAGES}
     if page_key in valid_ids:
-        st.session_state['page'] = page_key
-        st.session_state['nav_nonce'] = st.session_state.get('nav_nonce', 0) + 1
+        st.session_state["page"] = page_key
+        st.session_state["nav_nonce"] = st.session_state.get("nav_nonce", 0) + 1
+
 
 def get_page():
     valid_ids = {p['id'] for p in PAGES}
@@ -192,6 +193,7 @@ def get_page():
         page = 'dashboard'
     st.session_state['page'] = page
     return page
+
 
 def header(title: str, subtitle: str):
     st.markdown(
@@ -321,11 +323,8 @@ with st.sidebar:
     st.sidebar.markdown(
         textwrap.dedent("""
         <style>
-        .mso-brand-btn .stButton > button{
-            all: unset;
+        .mso-brand-title{
             display:block;
-            width:100%;
-            cursor:pointer;
             color:#EDEDED !important;
             font-weight:900 !important;
             font-size:36px !important;
@@ -333,46 +332,8 @@ with st.sidebar:
             line-height:1.05;
             margin:6px 0 18px 0;
             white-space:pre-line;
-            background:transparent !important;
-            border:none !important;
-            box-shadow:none !important;
-            padding:0 !important;
         }
-        .mso-brand-btn .stButton > button:hover,
-        .mso-brand-btn .stButton > button:focus{
-            background:transparent !important;
-            border:none !important;
-            box-shadow:none !important;
-            color:#ffffff !important;
-        }
-        .mso-nav-row{margin:0 0 10px 0;}
-        .mso-nav-row [data-testid="column"]:last-child{display:flex;justify-content:flex-end;align-items:center;}
-        .mso-nav-btn .stButton > button{
-            width:100%;
-            min-height:44px;
-            border-radius:10px !important;
-            border:1px solid rgba(255,255,255,0.10) !important;
-            background:rgba(255,255,255,0.02) !important;
-            color:#EDEDED !important;
-            font-weight:600 !important;
-            font-size:15px !important;
-            line-height:1.2 !important;
-            text-align:left !important;
-            justify-content:flex-start !important;
-            padding:12px 14px !important;
-            margin:0 !important;
-            box-shadow:none !important;
-        }
-        .mso-nav-btn .stButton > button:hover{
-            background:rgba(255,255,255,0.06) !important;
-            border-color:rgba(255,255,255,0.18) !important;
-        }
-        .mso-nav-btn.active .stButton > button{
-            background:#ffffff !important;
-            color:#0d1522 !important;
-            border-color:#ffffff !important;
-            font-weight:700 !important;
-        }
+        .mso-nav-wrap{margin-top:8px;margin-bottom:12px;}
         .mso-badge{
             display:inline-flex;
             align-items:center;
@@ -387,6 +348,7 @@ with st.sidebar:
             line-height:1;
             white-space:nowrap;
             flex-shrink:0;
+            margin-top:16px;
         }
         .mso-badge.pro{background:#ff4d4f;}
         .mso-badge.free{background:#2ecc71;}
@@ -396,6 +358,37 @@ with st.sidebar:
             font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
             background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);
         }
+        section[data-testid="stSidebar"] .stButton > button {
+            display:flex !important;
+            align-items:center !important;
+            justify-content:flex-start !important;
+            gap:10px !important;
+            width:100% !important;
+            min-height:52px !important;
+            border:1px solid rgba(255,255,255,0.10) !important;
+            border-radius:10px !important;
+            padding:12px 14px !important;
+            background:rgba(255,255,255,0.02) !important;
+            color:#EDEDED !important;
+            box-shadow:none !important;
+            font-weight:600 !important;
+            font-size:15px !important;
+            line-height:1.2 !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button:hover{
+            background:rgba(255,255,255,0.06) !important;
+            border-color:rgba(255,255,255,0.18) !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"]{
+            background:#ffffff !important;
+            color:#0d1522 !important;
+            border-color:#ffffff !important;
+        }
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover{
+            background:#ffffff !important;
+            color:#0d1522 !important;
+            border-color:#ffffff !important;
+        }
         </style>
         """),
         unsafe_allow_html=True,
@@ -403,11 +396,7 @@ with st.sidebar:
 
     current_page = get_page()
 
-    st.markdown('<div class="mso-brand-btn">', unsafe_allow_html=True)
-    if st.button('MISHARP SELLER OS', key='brand_dashboard', use_container_width=True):
-        set_page('dashboard')
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="mso-brand-title">MISHARP<br>SELLER OS</div>', unsafe_allow_html=True)
 
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
@@ -431,18 +420,18 @@ with st.sidebar:
 
     for p in PAGES:
         pid = p['id']
-        active_cls = 'active' if pid == current_page else ''
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
         badge_cls = 'pro' if p.get('pro', False) else 'free'
-        st.markdown(f'<div class="mso-nav-row"><div class="mso-nav-btn {active_cls}">', unsafe_allow_html=True)
-        cols = st.columns([5.2, 1.2], gap='small')
-        with cols[0]:
-            if st.button(p['label'], key=f"nav_{pid}", use_container_width=True):
-                set_page(pid)
-                st.rerun()
-        with cols[1]:
-            st.markdown(f'<span class="mso-badge {badge_cls}">{badge_text}</span>', unsafe_allow_html=True)
-        st.markdown('</div></div>', unsafe_allow_html=True)
+        row = st.sidebar.columns([5.0, 1.15], gap='small')
+        if row[0].button(
+            p['label'],
+            key=f'nav_{pid}_{st.session_state.get("nav_nonce",0)}',
+            use_container_width=True,
+            type='primary' if pid == current_page else 'secondary'
+        ):
+            set_page(pid)
+            st.rerun()
+        row[1].markdown(f'<div class="mso-badge {badge_cls}">{badge_text}</div>', unsafe_allow_html=True)
 
     render_usage_guide_button()
 
@@ -693,7 +682,6 @@ elif page == 'image_crop':
     run_embedded_app('image_crop')
 elif page == 'copy':
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown("### 상품설명 생성")
     product_name = st.text_input("상품명", placeholder="예) 어반 실버 포인트 긴팔 셔츠")
     one_line = st.text_input("한 줄 핵심", placeholder="예) 차르르 흐르는 실키한 원단감의 단정한 셔츠")
     material = st.text_input("소재", placeholder="예) 폴리에스터 100% / 실키 가공")
@@ -725,7 +713,6 @@ elif page == 'blog':
     run_embedded_app('blog')
 elif page == 'shortform':
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown("### 숏폼 메이커")
     topic = st.text_input("주제/상품명", placeholder="예) 학교방문룩 자켓 코디")
     hook = st.text_input("후킹 포인트", placeholder="예) 첫인상 좋아 보이는 코디")
     target = st.text_input("타깃", placeholder="예) 4050 여성 / 학모룩 고객")
