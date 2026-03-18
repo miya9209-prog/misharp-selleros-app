@@ -352,7 +352,9 @@ with st.sidebar:
         textwrap.dedent("""
         <style>
         .mso-brand-title-btn .stButton > button{
-            display:block !important;
+            display:flex !important;
+            justify-content:flex-start !important;
+            align-items:flex-start !important;
             width:100% !important;
             text-align:left !important;
             background:transparent !important;
@@ -362,9 +364,9 @@ with st.sidebar:
             margin:6px 0 18px 0 !important;
             color:#EDEDED !important;
             font-weight:900 !important;
-            font-size:36px !important;
-            letter-spacing:0.6px !important;
-            line-height:1.05 !important;
+            font-size:52px !important;
+            letter-spacing:0.4px !important;
+            line-height:0.95 !important;
             height:auto !important;
             min-height:auto !important;
             white-space:pre-line !important;
@@ -423,6 +425,21 @@ with st.sidebar:
             background:#ffffff !important;
             color:#0d1522 !important;
             border-color:#ffffff !important;
+        }
+        .mso-brand-title-btn [data-testid="stButton"] > button{
+            min-height:auto !important;
+            height:auto !important;
+            background:transparent !important;
+            border:none !important;
+            box-shadow:none !important;
+            border-radius:0 !important;
+        }
+        .mso-brand-title-btn [data-testid="stButton"] > button p{
+            font-size:52px !important;
+            line-height:0.95 !important;
+            font-weight:900 !important;
+            margin:0 !important;
+            text-align:left !important;
         }
         </style>
         """),
@@ -607,7 +624,7 @@ def dashboard():
 
         remove_ids = []
         for item in st.session_state.dash_todos:
-            row = st.columns([0.12, 0.70, 0.18], gap="small")
+            row = st.columns([0.11, 0.73, 0.16], gap="small")
             checked = row[0].checkbox(
                 "",
                 value=item.get("done", False),
@@ -646,7 +663,7 @@ def dashboard():
             for col, sc in zip(cols, shortcuts[start:start+per_row]):
                 with col:
                     st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
-            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 2px;'></div>", unsafe_allow_html=True)
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
@@ -677,8 +694,8 @@ def dashboard():
 
         st.divider()
         st.markdown("**기존 바로가기 관리**")
-        for sc in list(st.session_state.dash_shortcuts):
-            row = st.columns([2.2, 4.2, 1.2], gap="small")
+        for idx, sc in enumerate(list(st.session_state.dash_shortcuts)):
+            row = st.columns([2.1, 3.9, 0.55, 0.55, 0.9], gap="small")
             new_title = row[0].text_input(
                 "제목", sc.get("title", ""),
                 key=f"sc_title_{sc['id']}",
@@ -689,9 +706,25 @@ def dashboard():
                 key=f"sc_url_{sc['id']}",
                 label_visibility="collapsed",
             )
-            save_clicked = row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True)
+            move_left = row[2].button("←", key=f"sc_left_{sc['id']}", use_container_width=True)
+            move_right = row[3].button("→", key=f"sc_right_{sc['id']}", use_container_width=True)
+            save_clicked = row[4].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True)
+
             sc["title"] = new_title
             sc["url"] = new_url
+
+            if move_left and idx > 0:
+                items = st.session_state.dash_shortcuts
+                items[idx - 1], items[idx] = items[idx], items[idx - 1]
+                _save_dashboard_state()
+                st.rerun()
+
+            if move_right and idx < len(st.session_state.dash_shortcuts) - 1:
+                items = st.session_state.dash_shortcuts
+                items[idx + 1], items[idx] = items[idx], items[idx + 1]
+                _save_dashboard_state()
+                st.rerun()
+
             if save_clicked:
                 st.session_state.dash_shortcuts = [
                     x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]
