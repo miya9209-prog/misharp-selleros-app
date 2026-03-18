@@ -4,6 +4,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import runpy
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 APP_TITLE = "미샵 셀러 스튜디오 OS V1"
 
@@ -316,6 +317,33 @@ def run_embedded_app(app_key: str):
     finally:
         sys.path = old_sys_path
 
+
+
+DASHBOARD_STATE_PATH = Path(__file__).resolve().parent / "dashboard_state.json"
+
+def _load_dashboard_state():
+    try:
+        if DASHBOARD_STATE_PATH.exists():
+            return json.loads(DASHBOARD_STATE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+def _save_dashboard_state():
+    data = {
+        "dash_shortcuts": st.session_state.get("dash_shortcuts", []),
+        "dash_memo": st.session_state.get("dash_memo", ""),
+        "dash_todos": st.session_state.get("dash_todos", []),
+    }
+    try:
+        DASHBOARD_STATE_PATH.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+        return True
+    except Exception:
+        return False
+
 # -----------------------------
 # Sidebar Navigation
 # -----------------------------
@@ -323,17 +351,31 @@ with st.sidebar:
     st.sidebar.markdown(
         textwrap.dedent("""
         <style>
-        .mso-brand-title{
-            display:block;
+        .mso-brand-title-btn .stButton > button{
+            display:block !important;
+            width:100% !important;
+            text-align:left !important;
+            background:transparent !important;
+            border:none !important;
+            box-shadow:none !important;
+            padding:0 !important;
+            margin:6px 0 18px 0 !important;
             color:#EDEDED !important;
             font-weight:900 !important;
             font-size:36px !important;
             letter-spacing:0.6px !important;
-            line-height:1.05;
-            margin:6px 0 18px 0;
-            white-space:pre-line;
+            line-height:1.05 !important;
+            height:auto !important;
+            min-height:auto !important;
+            white-space:pre-line !important;
         }
-        .mso-nav-wrap{margin-top:8px;margin-bottom:12px;}
+        .mso-brand-title-btn .stButton > button:hover,
+        .mso-brand-title-btn .stButton > button:focus{
+            background:transparent !important;
+            border:none !important;
+            box-shadow:none !important;
+            color:#ffffff !important;
+        }
         .mso-badge{
             display:inline-flex;
             align-items:center;
@@ -358,19 +400,12 @@ with st.sidebar:
             font-size:11px;border-top:1px solid rgba(255,255,255,0.08);
             background:rgba(15,18,24,0.92);backdrop-filter: blur(8px);
         }
-        section[data-testid="stSidebar"] .stButton > button {
-            display:flex !important;
-            align-items:center !important;
-            justify-content:flex-start !important;
-            gap:10px !important;
-            width:100% !important;
-            min-height:52px !important;
-            border:1px solid rgba(255,255,255,0.10) !important;
+        section[data-testid="stSidebar"] .stButton > button{
             border-radius:10px !important;
-            padding:12px 14px !important;
+            border:1px solid rgba(255,255,255,0.10) !important;
             background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            box-shadow:none !important;
+            min-height:48px !important;
             font-weight:600 !important;
             font-size:15px !important;
             line-height:1.2 !important;
@@ -396,7 +431,11 @@ with st.sidebar:
 
     current_page = get_page()
 
-    st.sidebar.markdown('<div class="mso-brand-title">MISHARP<br>SELLER OS</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="mso-brand-title-btn">', unsafe_allow_html=True)
+    if st.sidebar.button('MISHARP\nSELLER OS', key='brand_home_btn', use_container_width=True):
+        set_page('dashboard')
+        st.rerun()
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
@@ -439,6 +478,7 @@ with st.sidebar:
         '<div class="mso-sidebar-footer">© 2026 misharpcompany. All rights reserved.</div>',
         unsafe_allow_html=True,
     )
+
 # -----------------------------
 # Dashboard (personal)
 # -----------------------------
@@ -492,17 +532,19 @@ def _fetch_weather_seoul_daily():
 
 def dashboard():
     import uuid
-    from datetime import datetime
 
+    stored = _load_dashboard_state()
     if "dash_shortcuts" not in st.session_state:
-        st.session_state.dash_shortcuts = [
+        loaded_shortcuts = stored.get("dash_shortcuts") if isinstance(stored.get("dash_shortcuts"), list) else None
+        st.session_state.dash_shortcuts = loaded_shortcuts or [
             {"id": str(uuid.uuid4()), "title": "미샵 관리자", "url": "https://misharp.co.kr", "emoji": ""},
             {"id": str(uuid.uuid4()), "title": "카페24 관리자", "url": "https://eclogin.cafe24.com/Shop/", "emoji": ""},
         ]
     if "dash_memo" not in st.session_state:
-        st.session_state.dash_memo = ""
+        st.session_state.dash_memo = stored.get("dash_memo", "")
     if "dash_todos" not in st.session_state:
-        st.session_state.dash_todos = []
+        loaded_todos = stored.get("dash_todos") if isinstance(stored.get("dash_todos"), list) else None
+        st.session_state.dash_todos = loaded_todos or []
 
     def _valid_url(url: str) -> bool:
         url = (url or "").strip()
@@ -511,8 +553,7 @@ def dashboard():
     c1, c2, c3 = st.columns([1.1, 2.2, 2.2], gap="large")
 
     with c1:
-        now = datetime.now()
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+        now = datetime.datetime.now(ZoneInfo("Asia/Seoul"))
         dow_ko = ["월", "화", "수", "목", "금", "토", "일"][now.weekday()]
         st.markdown("### 오늘")
         st.markdown(f"**{now.strftime('%Y-%m-%d')}({dow_ko}) {now.strftime('%H:%M')}**")
@@ -522,31 +563,37 @@ def dashboard():
             st.caption(f"{desc}  {tmax}° / {tmin}°")
         else:
             st.caption("날씨 정보를 불러오지 못했어요.")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.markdown("### 오늘 메모")
-        st.session_state.dash_memo = st.text_area(
-            label="",
+        memo_val = st.text_area(
+            label="오늘 메모",
             value=st.session_state.dash_memo,
             height=140,
             placeholder="오늘 중요한 메모를 적어두세요.",
             label_visibility="collapsed",
+            key="dash_memo_editor",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
+        if memo_val != st.session_state.dash_memo:
+            st.session_state.dash_memo = memo_val
+
+        if st.button("메모 저장하기", key="save_dash_memo", use_container_width=True):
+            if _save_dashboard_state():
+                st.success("메모를 저장했습니다.")
+            else:
+                st.error("메모 저장 중 오류가 발생했습니다.")
 
     with c3:
-        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.markdown("### 오늘 할일")
 
-        add_cols = st.columns([3, 1])
+        add_cols = st.columns([3.4, 1.0], gap="small")
         with add_cols[0]:
             new_todo = st.text_input(
                 "할일 추가",
-                "",
+                value="",
                 placeholder="예) 상세페이지 3개 생성",
                 label_visibility="collapsed",
+                key="dash_new_todo",
             )
         with add_cols[1]:
             add_clicked = st.button("추가", key="todo_add", use_container_width=True)
@@ -555,67 +602,66 @@ def dashboard():
             st.session_state.dash_todos.append(
                 {"id": str(uuid.uuid4()), "text": new_todo.strip(), "done": False}
             )
+            _save_dashboard_state()
             st.rerun()
 
         remove_ids = []
         for item in st.session_state.dash_todos:
-            row = st.columns([0.12, 0.74, 0.14])
-            item["done"] = row[0].checkbox(
+            row = st.columns([0.12, 0.70, 0.18], gap="small")
+            checked = row[0].checkbox(
                 "",
                 value=item.get("done", False),
                 key=f"todo_done_{item['id']}"
             )
+            if checked != item.get("done", False):
+                item["done"] = checked
             row[1].markdown(item["text"])
-            if row[2].button("삭제", key=f"todo_del_{item['id']}"):
+            if row[2].button("삭제", key=f"todo_del_{item['id']}", use_container_width=True):
                 remove_ids.append(item["id"])
 
         if remove_ids:
             st.session_state.dash_todos = [
                 t for t in st.session_state.dash_todos if t["id"] not in remove_ids
             ]
+            _save_dashboard_state()
             st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        if st.button("할일 저장하기", key="save_dash_todos", use_container_width=True):
+            if _save_dashboard_state():
+                st.success("할일을 저장했습니다.")
+            else:
+                st.error("할일 저장 중 오류가 발생했습니다.")
 
-    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
     st.markdown("### 바로가기")
 
     shortcuts = st.session_state.dash_shortcuts
     if not shortcuts:
         st.info("아직 바로가기가 없습니다. 아래에서 추가해보세요.")
     else:
-        cols = st.columns(4, gap="medium")
-        for i, sc in enumerate(shortcuts):
-            with cols[i % 4]:
-                st.markdown('<div class="ms-shortcut-card">', unsafe_allow_html=True)
-                st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        per_row = 3
+        for start in range(0, len(shortcuts), per_row):
+            cols = st.columns(per_row, gap="small")
+            for col, sc in zip(cols, shortcuts[start:start+per_row]):
+                with col:
+                    st.link_button(sc.get("title", "바로가기"), sc.get("url", ""), use_container_width=True)
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
     with st.expander("바로가기 추가/편집", expanded=False):
         st.markdown("**새 바로가기 추가**")
 
-        h = st.columns([2.2, 4.0, 1.2], gap="small")
-        h[0].markdown("제목")
-        h[1].markdown("URL")
-        h[2].markdown("&nbsp;", unsafe_allow_html=True)
-
         row = st.columns([2.2, 4.0, 1.2], gap="small")
         title = row[0].text_input(
-            "", "", key="sc_add_title",
+            "제목", "", key="sc_add_title",
             placeholder="예) 미샵 관리자",
             label_visibility="collapsed",
         )
         url = row[1].text_input(
-            "", "", key="sc_add_url",
+            "URL", "", key="sc_add_url",
             placeholder="https://",
             label_visibility="collapsed",
         )
-        row[2].markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
-
         if row[2].button("추가", key="shortcut_add", use_container_width=True):
             if not title.strip():
                 st.error("제목을 입력해 주세요.")
@@ -625,6 +671,7 @@ def dashboard():
                 st.session_state.dash_shortcuts.append(
                     {"id": str(uuid.uuid4()), "title": title.strip(), "url": url.strip(), "emoji": ""}
                 )
+                _save_dashboard_state()
                 st.success("추가되었습니다.")
                 st.rerun()
 
@@ -642,19 +689,23 @@ def dashboard():
                 key=f"sc_url_{sc['id']}",
                 label_visibility="collapsed",
             )
-            if row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True):
+            save_clicked = row[2].button("삭제", key=f"sc_rm_{sc['id']}", use_container_width=True)
+            sc["title"] = new_title
+            sc["url"] = new_url
+            if save_clicked:
                 st.session_state.dash_shortcuts = [
                     x for x in st.session_state.dash_shortcuts if x["id"] != sc["id"]
                 ]
+                _save_dashboard_state()
                 st.rerun()
-            sc["title"] = new_title
-            sc["url"] = new_url
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        if st.button("바로가기 저장하기", key="save_shortcuts", use_container_width=True):
+            if _save_dashboard_state():
+                st.success("바로가기를 저장했습니다.")
+            else:
+                st.error("바로가기 저장 중 오류가 발생했습니다.")
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
-
 
 # -----------------------------
 # Pages
@@ -706,13 +757,12 @@ elif page == 'copy':
 {use_scene or '출근룩, 데일리룩, 모임룩 등 활용 상황을 함께 제안해 보세요.'}
 """
             st.text_area("생성 결과", value=desc, height=320)
-    st.markdown('</div>', unsafe_allow_html=True)
+
 elif page == 'seo':
     run_embedded_app('seo')
 elif page == 'blog':
     run_embedded_app('blog')
 elif page == 'shortform':
-    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
     topic = st.text_input("주제/상품명", placeholder="예) 학교방문룩 자켓 코디")
     hook = st.text_input("후킹 포인트", placeholder="예) 첫인상 좋아 보이는 코디")
     target = st.text_input("타깃", placeholder="예) 4050 여성 / 학모룩 고객")
@@ -735,7 +785,6 @@ elif page == 'shortform':
 {cta or '지금 확인해 보세요'}
 """
             st.text_area("생성 결과", value=script, height=260)
-    st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info('준비 중인 페이지입니다.')
 
