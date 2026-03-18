@@ -180,22 +180,17 @@ section[data-testid="stSidebar"] label { font-size: 15px; }
 # Helpers
 # -----------------------------
 def set_page(page_key: str):
-    valid_ids = {p["id"] for p in PAGES}
+    valid_ids = {p['id'] for p in PAGES}
     if page_key in valid_ids:
-        st.session_state["page"] = page_key
-        st.query_params["page"] = page_key
-        st.session_state["nav_nonce"] = st.session_state.get("nav_nonce", 0) + 1
+        st.session_state['page'] = page_key
+        st.session_state['nav_nonce'] = st.session_state.get('nav_nonce', 0) + 1
 
 def get_page():
     valid_ids = {p['id'] for p in PAGES}
-    qp = st.query_params.get("page", None)
-    if isinstance(qp, list):
-        qp = qp[0] if qp else None
-    page = (qp or st.session_state.get('page') or 'dashboard').strip()
+    page = (st.session_state.get('page') or 'dashboard').strip()
     if page not in valid_ids:
         page = 'dashboard'
     st.session_state['page'] = page
-    st.query_params["page"] = page
     return page
 
 def header(title: str, subtitle: str):
@@ -326,9 +321,11 @@ with st.sidebar:
     st.sidebar.markdown(
         textwrap.dedent("""
         <style>
-        .mso-brand-link{
+        .mso-brand-btn .stButton > button{
+            all: unset;
             display:block;
-            text-decoration:none !important;
+            width:100%;
+            cursor:pointer;
             color:#EDEDED !important;
             font-weight:900 !important;
             font-size:36px !important;
@@ -336,46 +333,45 @@ with st.sidebar:
             line-height:1.05;
             margin:6px 0 18px 0;
             white-space:pre-line;
+            background:transparent !important;
+            border:none !important;
+            box-shadow:none !important;
+            padding:0 !important;
         }
-        .mso-nav-wrap{
-            display:flex;
-            flex-direction:column;
-            gap:10px;
-            margin-top:8px;
-            margin-bottom:12px;
+        .mso-brand-btn .stButton > button:hover,
+        .mso-brand-btn .stButton > button:focus{
+            background:transparent !important;
+            border:none !important;
+            box-shadow:none !important;
+            color:#ffffff !important;
         }
-        .mso-nav-item{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            text-decoration:none !important;
-            border:1px solid rgba(255,255,255,0.10);
-            border-radius:10px;
-            padding:12px 14px;
-            background:rgba(255,255,255,0.02);
+        .mso-nav-row{margin:0 0 10px 0;}
+        .mso-nav-row [data-testid="column"]:last-child{display:flex;justify-content:flex-end;align-items:center;}
+        .mso-nav-btn .stButton > button{
+            width:100%;
+            min-height:44px;
+            border-radius:10px !important;
+            border:1px solid rgba(255,255,255,0.10) !important;
+            background:rgba(255,255,255,0.02) !important;
             color:#EDEDED !important;
-            transition:all .15s ease;
+            font-weight:600 !important;
+            font-size:15px !important;
+            line-height:1.2 !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            padding:12px 14px !important;
+            margin:0 !important;
+            box-shadow:none !important;
         }
-        .mso-nav-item:hover{
-            background:rgba(255,255,255,0.06);
-            border-color:rgba(255,255,255,0.18);
+        .mso-nav-btn .stButton > button:hover{
+            background:rgba(255,255,255,0.06) !important;
+            border-color:rgba(255,255,255,0.18) !important;
         }
-        .mso-nav-item.active{
+        .mso-nav-btn.active .stButton > button{
             background:#ffffff !important;
             color:#0d1522 !important;
             border-color:#ffffff !important;
-            margin-bottom:8px;
-        }
-        .mso-nav-label{
-            flex:1;
-            text-align:left;
-            font-weight:600;
-            font-size:15px;
-            line-height:1.2;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
+            font-weight:700 !important;
         }
         .mso-badge{
             display:inline-flex;
@@ -407,10 +403,11 @@ with st.sidebar:
 
     current_page = get_page()
 
-    st.sidebar.markdown(
-        '<a class="mso-brand-link" href="?page=dashboard">MISHARP SELLER OS</a>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="mso-brand-btn">', unsafe_allow_html=True)
+    if st.button('MISHARP SELLER OS', key='brand_dashboard', use_container_width=True):
+        set_page('dashboard')
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.get('pro_authed', False):
         st.sidebar.success('PRO 사용 가능')
@@ -432,20 +429,20 @@ with st.sidebar:
 
     st.sidebar.markdown('---')
 
-    nav_parts = ['<div class="mso-nav-wrap">']
     for p in PAGES:
         pid = p['id']
         active_cls = 'active' if pid == current_page else ''
         badge_text = 'PRO' if p.get('pro', False) else 'FREE'
         badge_cls = 'pro' if p.get('pro', False) else 'free'
-        nav_parts.append(
-            f'<a class="mso-nav-item {active_cls}" href="?page={pid}">'
-            f'<span class="mso-nav-label">{p["label"]}</span>'
-            f'<span class="mso-badge {badge_cls}">{badge_text}</span>'
-            f'</a>'
-        )
-    nav_parts.append('</div>')
-    st.sidebar.markdown("".join(nav_parts), unsafe_allow_html=True)
+        st.markdown(f'<div class="mso-nav-row"><div class="mso-nav-btn {active_cls}">', unsafe_allow_html=True)
+        cols = st.columns([5.2, 1.2], gap='small')
+        with cols[0]:
+            if st.button(p['label'], key=f"nav_{pid}", use_container_width=True):
+                set_page(pid)
+                st.rerun()
+        with cols[1]:
+            st.markdown(f'<span class="mso-badge {badge_cls}">{badge_text}</span>', unsafe_allow_html=True)
+        st.markdown('</div></div>', unsafe_allow_html=True)
 
     render_usage_guide_button()
 
