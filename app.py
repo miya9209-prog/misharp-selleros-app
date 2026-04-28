@@ -2,6 +2,7 @@ import os, json, io, datetime, uuid, textwrap
 import streamlit as st
 import streamlit.components.v1 as components
 from pathlib import Path
+from urllib.parse import urlencode
 
 APP_TITLE = "미샵 셀러 스튜디오 OS"
 APP_DOMAIN = "misharp-selleros.com"
@@ -142,8 +143,20 @@ def _apply_shell_sidebar_fix():
     section[data-testid="stSidebar"] div.stButton{margin:0 !important; width:100% !important;}
     section[data-testid="stSidebar"] div.stButton > button{width:100% !important; min-height:42px !important; height:42px !important; padding:0.35rem 0.55rem !important; margin:0 !important; border-radius:12px !important; font-size:14px !important; line-height:1.15 !important; font-weight:700 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;}
     section[data-testid="stSidebar"] div.stButton > button p{font-size:14px !important; line-height:1.15 !important; margin:0 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;}
-    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button{height:42px !important; min-height:42px !important; padding:0.35rem 0.55rem !important; background:rgba(255,255,255,0.02) !important; border:1px solid rgba(255,255,255,0.14) !important; text-align:center !important; color:#EDEDED !important; justify-content:center !important; border-radius:12px !important;}
-    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button p{font-size:14px !important; line-height:1.15 !important; font-weight:800 !important; letter-spacing:0px !important; white-space:nowrap !important;}
+    section[data-testid="stSidebar"] .mso-brand-home,
+    section[data-testid="stSidebar"] .mso-brand-home:visited{
+        display:flex !important; align-items:center !important; justify-content:center !important;
+        width:100% !important; height:42px !important; min-height:42px !important; box-sizing:border-box !important;
+        padding:0.35rem 0.55rem !important; margin:6px 0 10px 0 !important;
+        border-radius:12px !important; border:1px solid rgba(255,255,255,0.14) !important;
+        background:rgba(255,255,255,0.02) !important; color:#EDEDED !important;
+        text-align:center !important; text-decoration:none !important; font-size:14px !important;
+        line-height:1.15 !important; font-weight:800 !important; letter-spacing:0px !important;
+        white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+    }
+    section[data-testid="stSidebar"] .mso-brand-home:hover{
+        background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.22) !important; color:#ffffff !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -340,11 +353,15 @@ def run_embedded_app(app_key: str):
 
 with st.sidebar:
     current_page = get_page()
-    st.sidebar.markdown('<div class="mso-brand-button">', unsafe_allow_html=True)
-    if st.sidebar.button('MISHARP SELLER OS', key='brand_go_dashboard', use_container_width=True):
-        set_page('dashboard')
-        st.rerun()
-    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+    _brand_query = {"page": "dashboard"}
+    _auth_token = _qp_get("mso_auth", "").strip()
+    if _auth_token:
+        _brand_query["mso_auth"] = _auth_token
+    _brand_href = "?" + urlencode(_brand_query)
+    st.sidebar.markdown(
+        f'<a class="mso-brand-home" href="{_brand_href}" target="_self" title="대시보드로 새로고침">MISHARP SELLER OS</a>',
+        unsafe_allow_html=True,
+    )
     st.sidebar.markdown(f'<div class="mso-domain">{APP_DOMAIN}</div>', unsafe_allow_html=True)
 
     if st.session_state.get('pro_authed', False):
