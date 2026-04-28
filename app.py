@@ -20,20 +20,21 @@ PAGES = [
     {"id": "seo", "group": "마케팅", "label": "SEO 생성", "subtitle": "상품 SEO 메타, 키워드, 설명문을 빠르게 생성합니다.", "pro": True},
     {"id": "blog", "group": "마케팅", "label": "블로그 작성", "subtitle": "상품과 키워드 기반으로 SEO 글 초안을 빠르게 만듭니다.", "pro": True},
 
-    {"id": "md_insight", "group": "분석도구", "label": "MD 인사이트", "subtitle": "패션 키워드, 상품, 경쟁사 데이터를 분석하고 상품기획 인사이트를 제공합니다.", "pro": True},
+    {"id": "md_insight", "group": "인사이트 분석", "label": "MD 인사이트", "subtitle": "패션 키워드, 상품, 경쟁사 데이터를 분석하고 상품기획 인사이트를 제공합니다.", "pro": True},
     {"id": "miya_manager", "group": "분석도구", "label": "챗봇 관리/분석", "subtitle": "미야언니 상담 로그와 운영 현황을 점검합니다.", "pro": True},
     {"id": "db_maker", "group": "분석도구", "label": "상품DB 생성", "subtitle": "카테고리와 상품 URL 기반으로 미샵 상품 DB를 생성합니다.", "pro": True},
 
     {"id": "crm_os", "group": "운영관리", "label": "CRM 관리", "subtitle": "회원 데이터 업로드부터 세그먼트와 실행 전략까지 관리합니다.", "pro": True},
     {"id": "sample_manager", "group": "운영관리", "label": "샘플반품관리", "subtitle": "샘플과 반품 데이터 검색, 이력 관리를 빠르게 처리합니다.", "pro": True},
-    {"id": "mishap_news_post", "group": "운영관리", "label": "뉴스/정보/인사이트", "subtitle": "패션·유통·IT·경제 뉴스와 미샵 인사이트를 한 화면에서 확인합니다.", "pro": True},
+    {"id": "mishap_news_post", "group": "인사이트 분석", "label": "뉴스/정보/인사이트", "subtitle": "패션·유통·IT·경제 뉴스와 미샵 인사이트를 한 화면에서 확인합니다.", "pro": True},
 
     {"id": "usage_guide", "group": "설정", "label": "기능별 사용법", "subtitle": "Seller OS 전체 메뉴의 사용 흐름과 권장 루틴을 확인합니다.", "pro": False},
 ]
 
-GROUP_ORDER = ["대시보드", "상세페이지 제작", "마케팅", "분석도구", "운영관리", "설정"]
+GROUP_ORDER = ["대시보드", "인사이트 분석", "상세페이지 제작", "마케팅", "분석도구", "운영관리", "설정"]
 GROUP_META = {
     "대시보드": "오늘 업무를 한 화면에서 관리",
+    "인사이트 분석": "MD 인사이트와 뉴스 기반 기획 분석",
     "상세페이지 제작": "기획부터 템플릿, PSD, 썸네일, GIF 작업",
     "마케팅": "광고, SEO, 블로그 콘텐츠",
     "분석도구": "챗봇과 상품 DB 점검 도구",
@@ -141,8 +142,8 @@ def _apply_shell_sidebar_fix():
     section[data-testid="stSidebar"] div.stButton{margin:0 !important; width:100% !important;}
     section[data-testid="stSidebar"] div.stButton > button{width:100% !important; min-height:42px !important; height:42px !important; padding:0.35rem 0.55rem !important; margin:0 !important; border-radius:12px !important; font-size:14px !important; line-height:1.15 !important; font-weight:700 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;}
     section[data-testid="stSidebar"] div.stButton > button p{font-size:14px !important; line-height:1.15 !important; margin:0 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;}
-    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button{height:auto !important; min-height:58px !important; padding:6px 0 !important; background:transparent !important; border-color:transparent !important; text-align:left !important; color:#EDEDED !important; justify-content:flex-start !important;}
-    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button p{font-size:31px !important; line-height:1.05 !important; font-weight:900 !important; letter-spacing:0.6px !important;}
+    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button{height:42px !important; min-height:42px !important; padding:0.35rem 0.55rem !important; background:rgba(255,255,255,0.02) !important; border:1px solid rgba(255,255,255,0.14) !important; text-align:center !important; color:#EDEDED !important; justify-content:center !important; border-radius:12px !important;}
+    section[data-testid="stSidebar"] .mso-brand-button div.stButton > button p{font-size:14px !important; line-height:1.15 !important; font-weight:800 !important; letter-spacing:0px !important; white-space:nowrap !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -174,7 +175,7 @@ div.block-container { padding-top: 3.2rem; padding-bottom: 2rem; max-width: 1200
 .ms-shortcut-card{margin:0 0 2px 0 !important;}
 section[data-testid="stSidebar"] .stButton > button{min-height:42px !important; margin:0 !important; border-radius:12px !important; font-weight:700 !important;}
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div{gap:6px !important;}
-section[data-testid="stSidebar"] .mso-brand-text{display:block !important;color:#EDEDED !important;font-weight:900 !important;font-size:31px !important;letter-spacing:0.6px !important;line-height:1.05 !important;margin:6px 0 10px 0 !important;white-space:pre-line !important;}
+section[data-testid="stSidebar"] .mso-brand-text{display:block !important;color:#EDEDED !important;font-weight:800 !important;font-size:14px !important;letter-spacing:0px !important;line-height:1.15 !important;margin:6px 0 10px 0 !important;white-space:nowrap !important;text-align:center !important;}
 section[data-testid="stSidebar"] .mso-domain{font-size:11px;color:rgba(255,255,255,0.55);margin:-2px 0 14px 1px;}
 section[data-testid="stSidebar"] .mso-group-title{font-size:14px;font-weight:900;color:rgba(255,255,255,0.92);margin:18px 0 4px 2px;letter-spacing:-0.2px;}
 section[data-testid="stSidebar"] .mso-group-sub{font-size:11px;color:rgba(255,255,255,0.48);margin:0 0 8px 2px;line-height:1.35;}
@@ -340,7 +341,7 @@ def run_embedded_app(app_key: str):
 with st.sidebar:
     current_page = get_page()
     st.sidebar.markdown('<div class="mso-brand-button">', unsafe_allow_html=True)
-    if st.sidebar.button('MISHARP\nSELLER OS', key='brand_go_dashboard', use_container_width=True):
+    if st.sidebar.button('MISHARP SELLER OS', key='brand_go_dashboard', use_container_width=True):
         set_page('dashboard')
         st.rerun()
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
