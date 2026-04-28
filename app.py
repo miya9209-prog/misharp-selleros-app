@@ -145,17 +145,16 @@ def _apply_shell_sidebar_fix():
     section[data-testid="stSidebar"] div.stButton > button p{font-size:14px !important; line-height:1.15 !important; margin:0 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;}
     section[data-testid="stSidebar"] .mso-brand-home,
     section[data-testid="stSidebar"] .mso-brand-home:visited{
-        display:flex !important; align-items:center !important; justify-content:center !important;
-        width:100% !important; height:42px !important; min-height:42px !important; box-sizing:border-box !important;
-        padding:0.35rem 0.55rem !important; margin:6px 0 10px 0 !important;
-        border-radius:12px !important; border:1px solid rgba(255,255,255,0.14) !important;
-        background:rgba(255,255,255,0.02) !important; color:#EDEDED !important;
-        text-align:center !important; text-decoration:none !important; font-size:14px !important;
-        line-height:1.15 !important; font-weight:800 !important; letter-spacing:0px !important;
-        white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+        display:block !important;
+        width:100% !important; box-sizing:border-box !important;
+        padding:0 !important; margin:8px 0 8px 0 !important;
+        border:none !important; background:transparent !important;
+        color:#F4F4F5 !important; text-align:left !important; text-decoration:none !important;
+        font-size:26px !important; line-height:1.12 !important; font-weight:900 !important;
+        letter-spacing:0.5px !important; white-space:normal !important;
     }
     section[data-testid="stSidebar"] .mso-brand-home:hover{
-        background:rgba(255,255,255,0.08) !important; border-color:rgba(255,255,255,0.22) !important; color:#ffffff !important;
+        color:#ffffff !important; opacity:0.92 !important; text-decoration:none !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -359,7 +358,7 @@ with st.sidebar:
         _brand_query["mso_auth"] = _auth_token
     _brand_href = "?" + urlencode(_brand_query)
     st.sidebar.markdown(
-        f'<a class="mso-brand-home" href="{_brand_href}" target="_self" title="대시보드로 새로고침">MISHARP SELLER OS</a>',
+        f'<a class="mso-brand-home" href="{_brand_href}" target="_self" title="대시보드로 새로고침">MISHARP<br>SELLER OS</a>',
         unsafe_allow_html=True,
     )
     st.sidebar.markdown(f'<div class="mso-domain">{APP_DOMAIN}</div>', unsafe_allow_html=True)
