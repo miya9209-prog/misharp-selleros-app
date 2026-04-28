@@ -1,0 +1,6 @@
+MD 인사이트 추가 적용본
+- 분석도구 섹션에 MD 인사이트 메뉴 추가
+- apps/md_insight 폴더 신규 추가
+- 기존 Seller OS UI/메뉴 스타일 유지
+- 새 창 없이 기존 임베드 방식으로 연결
+- requirements.txt 에 pytrends 추가

@@ -1,0 +1,1 @@
+셀러OS 적용 방법\n1) 이 ZIP을 기존 Seller OS 작업 폴더에 통째로 덮어쓰기\n2) Seller OS 레포 최상위 폴더에서 아래 실행\n   git add .\n   git commit -m "remove shortform add marketing os"\n   git push\n3) Streamlit Cloud에서 Reboot app\n

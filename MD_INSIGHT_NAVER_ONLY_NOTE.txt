@@ -1,0 +1,7 @@
+
+MD 인사이트 네이버 안정화 적용본
+- Google Trends 제거
+- 네이버 데이터랩 기반 키워드 RADAR 적용
+- NAVER API 키 예외 처리 추가
+- OPENAI_API_KEY 예외 처리 추가
+- 실패 시 앱 종료 대신 안내 메시지 유지

@@ -1,0 +1,12 @@
+[셀러OS 블로그 생성기 적용 방법]
+1. 이 ZIP을 압축 해제합니다.
+2. 폴더 안의 app.py와 requirements.txt를 셀러OS 레포의 apps/blog/ 폴더에 덮어쓰기 합니다.
+3. 셀러OS 작업 폴더(레포 루트)에서 터미널을 열고 아래 명령을 실행합니다.
+   git add .
+   git commit -m "blog prompt update"
+   git push
+4. Streamlit Cloud에서 Reboot app을 실행합니다.
+
+[주의]
+- Git 명령은 apps/blog 폴더 안이 아니라 셀러OS 레포 최상위 폴더에서 실행해야 합니다.
+- 이 수정본은 원래 블로그 생성기 UI와 구성을 유지한 상태에서 프롬프트만 강화한 버전입니다.
